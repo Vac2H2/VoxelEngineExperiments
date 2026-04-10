@@ -1,99 +1,284 @@
-#pragma kernel CSMain
+#pragma kernel ClearWordsMain
+#pragma kernel ConservativeSurfaceMain
+#pragma kernel SolidVoxelizationMain
+#pragma kernel CombineSurfaceAndSolidMain
 
-StructuredBuffer<float3> _Vertices;
-StructuredBuffer<uint> _Indices;
-RWStructuredBuffer<uint> _ChunkOccupancyWords;
-RWStructuredBuffer<uint> _ChunkFlags;
+struct TriRecord
+{
+    float4 v0;
+    float4 v1;
+    float4 v2;
+};
+
+StructuredBuffer<TriRecord> _TriRecords;
+RWStructuredBuffer<uint> _SurfaceWords;
+RWStructuredBuffer<uint> _SolidWords;
+RWStructuredBuffer<uint> _ClearTarget;
 
 int3 _GridDimensions;
-int3 _ChunkDimensions;
-float3 _BoundsMin;
+int _WordsPerRow;
 float _VoxelSize;
-int _TriangleCount;
+int _TriCount;
+int _ClearWordCount;
 
-static const uint kChunkDimension = 8u;
-static const uint kOccupancyWordCountPerChunk = 16u;
-static const float3 kRayDirection = normalize(float3(0.57735026, 0.52981293, 0.62133676));
-static const float kRayEpsilon = 1e-5;
+static const uint kWordBitCount = 32u;
+static const float kEpsilon = 1e-6;
+static const float kBoundaryEpsilon = 1e-7;
 
-bool RayIntersectsTriangle(float3 rayOrigin, float3 rayDirection, float3 v0, float3 v1, float3 v2)
+float Cross2(float2 a, float2 b)
 {
-    float3 edge1 = v1 - v0;
-    float3 edge2 = v2 - v0;
-    float3 pVec = cross(rayDirection, edge2);
-    float determinant = dot(edge1, pVec);
-
-    if (abs(determinant) < kRayEpsilon)
-    {
-        return false;
-    }
-
-    float invDeterminant = 1.0 / determinant;
-    float3 tVec = rayOrigin - v0;
-    float u = dot(tVec, pVec) * invDeterminant;
-    if (u <= kRayEpsilon || u >= (1.0 - kRayEpsilon))
-    {
-        return false;
-    }
-
-    float3 qVec = cross(tVec, edge1);
-    float v = dot(rayDirection, qVec) * invDeterminant;
-    if (v <= kRayEpsilon || (u + v) >= (1.0 - kRayEpsilon))
-    {
-        return false;
-    }
-
-    float t = dot(edge2, qVec) * invDeterminant;
-    return t > kRayEpsilon;
+    return (a.x * b.y) - (a.y * b.x);
 }
 
-bool IsInsideMesh(float3 sampleCenter)
+uint ComputeWordIndex(uint x, uint y, uint z)
 {
-    float3 rayOrigin = sampleCenter + (kRayDirection * (_VoxelSize * 1e-3));
-    uint hitCount = 0u;
+    return ((z * (uint)_GridDimensions.y) + y) * (uint)_WordsPerRow + (x >> 5u);
+}
 
-    [loop]
-    for (int triangleIndex = 0; triangleIndex < _TriangleCount; triangleIndex++)
+[numthreads(64, 1, 1)]
+void ClearWordsMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint wordIndex = dispatchThreadId.x;
+    if (wordIndex >= (uint)_ClearWordCount)
     {
-        uint baseIndex = triangleIndex * 3u;
-        float3 v0 = _Vertices[_Indices[baseIndex]];
-        float3 v1 = _Vertices[_Indices[baseIndex + 1u]];
-        float3 v2 = _Vertices[_Indices[baseIndex + 2u]];
+        return;
+    }
 
-        if (RayIntersectsTriangle(rayOrigin, kRayDirection, v0, v1, v2))
+    _ClearTarget[wordIndex] = 0u;
+}
+
+void SetVoxelBit(RWStructuredBuffer<uint> buffer, uint x, uint y, uint z)
+{
+    uint wordIndex = ComputeWordIndex(x, y, z);
+    uint bitMask = 1u << (x & (kWordBitCount - 1u));
+    InterlockedOr(buffer[wordIndex], bitMask);
+}
+
+void ToggleVoxelRowSuffix(uint startX, uint y, uint z)
+{
+    uint rowStart = ((z * (uint)_GridDimensions.y) + y) * (uint)_WordsPerRow;
+    uint wordIndex = startX >> 5u;
+    uint bitOffset = startX & (kWordBitCount - 1u);
+    uint firstMask = 0xffffffffu << bitOffset;
+
+    InterlockedXor(_SolidWords[rowStart + wordIndex], firstMask);
+    for (uint currentWord = wordIndex + 1u; currentWord < (uint)_WordsPerRow; currentWord++)
+    {
+        InterlockedXor(_SolidWords[rowStart + currentWord], 0xffffffffu);
+    }
+}
+
+bool AxisSeparatesTriAndBox(float3 axis, float3 v0, float3 v1, float3 v2, float3 boxHalfSize)
+{
+    float axisLengthSq = dot(axis, axis);
+    if (axisLengthSq <= kEpsilon)
+    {
+        return false;
+    }
+
+    float p0 = dot(v0, axis);
+    float p1 = dot(v1, axis);
+    float p2 = dot(v2, axis);
+    float minProjection = min(p0, min(p1, p2));
+    float maxProjection = max(p0, max(p1, p2));
+    float radius = dot(abs(axis), boxHalfSize);
+    return minProjection > radius || maxProjection < -radius;
+}
+
+bool TriBoxOverlap(float3 a, float3 b, float3 c, float3 boxMin, float voxelSize)
+{
+    float3 boxHalfSize = float3(voxelSize * 0.5, voxelSize * 0.5, voxelSize * 0.5);
+    float3 boxCenter = boxMin + boxHalfSize;
+
+    float3 v0 = a - boxCenter;
+    float3 v1 = b - boxCenter;
+    float3 v2 = c - boxCenter;
+
+    float3 e0 = v1 - v0;
+    float3 e1 = v2 - v1;
+    float3 e2 = v0 - v2;
+
+    float3 triMin = min(v0, min(v1, v2));
+    float3 triMax = max(v0, max(v1, v2));
+    if (triMax.x < -boxHalfSize.x || triMin.x > boxHalfSize.x)
+    {
+        return false;
+    }
+
+    if (triMax.y < -boxHalfSize.y || triMin.y > boxHalfSize.y)
+    {
+        return false;
+    }
+
+    if (triMax.z < -boxHalfSize.z || triMin.z > boxHalfSize.z)
+    {
+        return false;
+    }
+
+    if (AxisSeparatesTriAndBox(cross(e0, float3(1.0, 0.0, 0.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e0, float3(0.0, 1.0, 0.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e0, float3(0.0, 0.0, 1.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e1, float3(1.0, 0.0, 0.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e1, float3(0.0, 1.0, 0.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e1, float3(0.0, 0.0, 1.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e2, float3(1.0, 0.0, 0.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e2, float3(0.0, 1.0, 0.0)), v0, v1, v2, boxHalfSize)) return false;
+    if (AxisSeparatesTriAndBox(cross(e2, float3(0.0, 0.0, 1.0)), v0, v1, v2, boxHalfSize)) return false;
+
+    float3 normal = cross(e0, e1);
+    float planeDistance = dot(normal, v0);
+    float planeRadius = dot(abs(normal), boxHalfSize);
+    return abs(planeDistance) <= (planeRadius + kEpsilon);
+}
+
+bool IsTopLeftEdge(float2 edge)
+{
+    return edge.y > 0.0 || (abs(edge.y) <= kBoundaryEpsilon && edge.x < 0.0);
+}
+
+bool EdgeContainsSample(float2 edgeStart, float2 edgeEnd, float2 samplePos)
+{
+    float2 edge = edgeEnd - edgeStart;
+    float edgeValue = Cross2(edge, samplePos - edgeStart);
+    if (edgeValue > kBoundaryEpsilon)
+    {
+        return true;
+    }
+
+    if (edgeValue < -kBoundaryEpsilon)
+    {
+        return false;
+    }
+
+    return IsTopLeftEdge(edge);
+}
+
+bool CoversVoxelColumnCenterYZ(float3 a, float3 b, float3 c, float2 yzCenter)
+{
+    float2 p0 = a.yz;
+    float2 p1 = b.yz;
+    float2 p2 = c.yz;
+    float orientation = Cross2(p1 - p0, p2 - p0);
+    if (abs(orientation) <= kEpsilon)
+    {
+        return false;
+    }
+
+    if (orientation < 0.0)
+    {
+        float2 temp = p1;
+        p1 = p2;
+        p2 = temp;
+    }
+
+    return EdgeContainsSample(p0, p1, yzCenter)
+        && EdgeContainsSample(p1, p2, yzCenter)
+        && EdgeContainsSample(p2, p0, yzCenter);
+}
+
+[numthreads(64, 1, 1)]
+void ConservativeSurfaceMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint triIndex = dispatchThreadId.x;
+    if (triIndex >= (uint)_TriCount)
+    {
+        return;
+    }
+
+    TriRecord triData = _TriRecords[triIndex];
+    float3 a = triData.v0.xyz;
+    float3 b = triData.v1.xyz;
+    float3 c = triData.v2.xyz;
+
+    float3 triMin = min(a, min(b, c));
+    float3 triMax = max(a, max(b, c));
+    int3 minVoxel = clamp((int3)floor(triMin / _VoxelSize) - 1, int3(0, 0, 0), _GridDimensions - 1);
+    int3 maxVoxel = clamp((int3)floor(triMax / _VoxelSize) + 1, int3(0, 0, 0), _GridDimensions - 1);
+
+    for (int z = minVoxel.z; z <= maxVoxel.z; z++)
+    {
+        for (int y = minVoxel.y; y <= maxVoxel.y; y++)
         {
-            hitCount++;
+            for (int x = minVoxel.x; x <= maxVoxel.x; x++)
+            {
+                float3 boxMin = float3(x, y, z) * _VoxelSize;
+                if (TriBoxOverlap(a, b, c, boxMin, _VoxelSize))
+                {
+                    SetVoxelBit(_SurfaceWords, (uint)x, (uint)y, (uint)z);
+                }
+            }
         }
     }
-
-    return (hitCount & 1u) != 0u;
 }
 
-[numthreads(4, 4, 4)]
-void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+[numthreads(64, 1, 1)]
+void SolidVoxelizationMain(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-    if (dispatchThreadId.x >= (uint)_GridDimensions.x ||
-        dispatchThreadId.y >= (uint)_GridDimensions.y ||
-        dispatchThreadId.z >= (uint)_GridDimensions.z)
+    uint triIndex = dispatchThreadId.x;
+    if (triIndex >= (uint)_TriCount)
     {
         return;
     }
 
-    float3 sampleCenter = _BoundsMin + ((float3)dispatchThreadId + 0.5) * _VoxelSize;
-    if (!IsInsideMesh(sampleCenter))
+    TriRecord triData = _TriRecords[triIndex];
+    float3 a = triData.v0.xyz;
+    float3 b = triData.v1.xyz;
+    float3 c = triData.v2.xyz;
+
+    float3 normal = cross(b - a, c - a);
+    if (abs(normal.x) <= kEpsilon)
     {
         return;
     }
 
-    uint3 chunkCoord = dispatchThreadId / kChunkDimension;
-    uint3 localCoord = dispatchThreadId - (chunkCoord * kChunkDimension);
-    uint localIndex = localCoord.x + (kChunkDimension * (localCoord.y + (kChunkDimension * localCoord.z)));
-    uint occupancyWordIndex = localIndex >> 5;
-    uint occupancyMask = 1u << (localIndex & 31u);
+    float minY = min(a.y, min(b.y, c.y));
+    float maxY = max(a.y, max(b.y, c.y));
+    float minZ = min(a.z, min(b.z, c.z));
+    float maxZ = max(a.z, max(b.z, c.z));
 
-    uint chunkIndex = chunkCoord.x +
-        ((uint)_ChunkDimensions.x * (chunkCoord.y + ((uint)_ChunkDimensions.y * chunkCoord.z)));
+    int minYIndex = clamp((int)floor(minY / _VoxelSize) - 1, 0, _GridDimensions.y - 1);
+    int maxYIndex = clamp((int)floor(maxY / _VoxelSize) + 1, 0, _GridDimensions.y - 1);
+    int minZIndex = clamp((int)floor(minZ / _VoxelSize) - 1, 0, _GridDimensions.z - 1);
+    int maxZIndex = clamp((int)floor(maxZ / _VoxelSize) + 1, 0, _GridDimensions.z - 1);
 
-    InterlockedOr(_ChunkOccupancyWords[(chunkIndex * kOccupancyWordCountPerChunk) + occupancyWordIndex], occupancyMask);
-    InterlockedOr(_ChunkFlags[chunkIndex], 1u);
+    float planeOffset = dot(normal, a);
+    for (int z = minZIndex; z <= maxZIndex; z++)
+    {
+        float zCenter = (z + 0.5) * _VoxelSize;
+        for (int y = minYIndex; y <= maxYIndex; y++)
+        {
+            float yCenter = (y + 0.5) * _VoxelSize;
+            if (!CoversVoxelColumnCenterYZ(a, b, c, float2(yCenter, zCenter)))
+            {
+                continue;
+            }
+
+            float xIntersection = (planeOffset - (normal.y * yCenter) - (normal.z * zCenter)) / normal.x;
+            int startX = (int)floor((xIntersection / _VoxelSize) + 0.5);
+            if (startX < 0)
+            {
+                startX = 0;
+            }
+
+            if (startX >= _GridDimensions.x)
+            {
+                continue;
+            }
+
+            ToggleVoxelRowSuffix((uint)startX, (uint)y, (uint)z);
+        }
+    }
+}
+
+[numthreads(64, 1, 1)]
+void CombineSurfaceAndSolidMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint wordIndex = dispatchThreadId.x;
+    uint totalWordCount = (uint)(_WordsPerRow * _GridDimensions.y * _GridDimensions.z);
+    if (wordIndex >= totalWordCount)
+    {
+        return;
+    }
+
+    _SolidWords[wordIndex] |= _SurfaceWords[wordIndex];
 }

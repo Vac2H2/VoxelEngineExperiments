@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d98d90eec1a34610bd4238227e5579ce, type: 3}
   m_Name: VoxelRenderPipelineAsset
   m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.RenderPipeline.VoxelRenderPipelineAsset
-  _modules: []
+  _modules:
+  - {fileID: 11400000, guid: c84a3c47eb80ec04aa3dcab22a31743e, type: 2}

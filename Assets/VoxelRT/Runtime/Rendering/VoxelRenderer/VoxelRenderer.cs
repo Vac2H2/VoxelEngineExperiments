@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -16,7 +17,7 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
     [RequireComponent(typeof(VoxelFilter))]
     public sealed class VoxelRenderer : MonoBehaviour
     {
-        private const int InvalidHandle = -1;
+        private const int InvalidHandle = 0;
         private const int InvalidResidencyId = -1;
         private const int InvalidBootstrapVersion = -1;
 
@@ -32,6 +33,7 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
 
         private MaterialPropertyBlock _userPropertyBlock;
         private MaterialPropertyBlock _scenePropertyBlock;
+        private GraphicsBuffer _chunkAabbBuffer;
         private int _modelResidencyId = InvalidResidencyId;
         private int _paletteResidencyId = InvalidResidencyId;
         private int _rtasHandle = InvalidHandle;
@@ -40,6 +42,7 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
         private VoxelRuntimeBootstrap _boundBootstrap;
         private bool _needsFullRefresh = true;
         private bool _needsPaletteRefresh;
+        private string _lastRegistrationFailureDiagnostics;
 
         public int ModelResidencyId => _modelResidencyId;
 
@@ -236,6 +239,9 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
 
             int retainedModelId = InvalidResidencyId;
             int retainedPaletteId = InvalidResidencyId;
+            bool hasModelDescriptor = false;
+            VoxelModelResourceDescriptor modelDescriptor = default;
+            RayTracingAABBsInstanceConfig instanceConfig = default;
 
             try
             {
@@ -244,16 +250,22 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
 
                 _modelResidencyId = retainedModelId;
                 _paletteResidencyId = retainedPaletteId;
+                modelDescriptor = runtime.GpuResourceSystem.GetModelResourceDescriptor(_modelResidencyId);
+                hasModelDescriptor = true;
+                _chunkAabbBuffer = modelDescriptor.ProceduralAabbBuffer;
                 RebuildScenePropertyBlock();
 
-                RayTracingSceneInstanceDescriptor descriptor = BuildDescriptor(runtime.GpuResourceSystem);
-                _rtasHandle = runtime.RayTracingScene.AddInstance(in descriptor);
+                instanceConfig = BuildInstanceConfig(modelDescriptor);
+                _rtasHandle = runtime.RayTracingScene.AddInstance(in instanceConfig, transform.localToWorldMatrix);
+                _lastRegistrationFailureDiagnostics = null;
                 _boundBootstrap = bootstrap;
                 _resolvedBootstrapVersion = bootstrap.Version;
                 transform.hasChanged = false;
             }
-            catch
+            catch (Exception exception)
             {
+                LogRegistrationFailure(runtime, bootstrap, hasModelDescriptor, modelDescriptor, instanceConfig, exception);
+
                 if (retainedPaletteId != InvalidResidencyId)
                 {
                     runtime.GpuResourceSystem.ReleasePalette(retainedPaletteId);
@@ -348,28 +360,21 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             return resourceSystem.RetainPalette(_voxelFilter.PaletteKey, paletteBytes);
         }
 
-        private RayTracingSceneInstanceDescriptor BuildDescriptor(IVoxelGpuResourceView resourceView)
+        private RayTracingAABBsInstanceConfig BuildInstanceConfig(VoxelModelResourceDescriptor modelDescriptor)
         {
-            VoxelModelResourceDescriptor modelDescriptor = resourceView.GetModelResourceDescriptor(_modelResidencyId);
-            RayTracingProceduralGeometryDescriptor procedural = new RayTracingProceduralGeometryDescriptor(
-                modelDescriptor.ProceduralAabbBuffer,
-                modelDescriptor.ProceduralAabbCount,
-                0u,
-                _material,
-                null,
-                _opaqueMaterial,
-                _dynamicGeometry,
-                _overrideBuildFlags,
-                _buildFlags);
-
-            return new RayTracingSceneInstanceDescriptor(
-                RayTracingGeometryDescriptor.FromProcedural(procedural),
-                transform.localToWorldMatrix,
-                0u)
+            return new RayTracingAABBsInstanceConfig
             {
-                Mask = checked((uint)_mask),
-                Layer = gameObject.layer,
-                MaterialProperties = _scenePropertyBlock,
+                aabbBuffer = modelDescriptor.ProceduralAabbBuffer,
+                aabbCount = modelDescriptor.ProceduralAabbCount,
+                aabbOffset = 0,
+                material = _material,
+                materialProperties = _scenePropertyBlock,
+                opaqueMaterial = _opaqueMaterial,
+                dynamicGeometry = _dynamicGeometry,
+                accelerationStructureBuildFlagsOverride = _overrideBuildFlags,
+                accelerationStructureBuildFlags = _buildFlags,
+                mask = checked((uint)_mask),
+                layer = gameObject.layer,
             };
         }
 
@@ -379,6 +384,11 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             MaterialPropertyBlockUtility.CopyShaderProperties(_material, _userPropertyBlock, _scenePropertyBlock);
             _scenePropertyBlock.SetInteger(VoxelMaterialPropertyIds.ModelResidencyId, _modelResidencyId);
             _scenePropertyBlock.SetInteger(VoxelMaterialPropertyIds.PaletteResidencyId, _paletteResidencyId);
+            _scenePropertyBlock.SetFloat(VoxelMaterialPropertyIds.OpaqueMaterial, _opaqueMaterial ? 1.0f : 0.0f);
+            if (_chunkAabbBuffer != null)
+            {
+                _scenePropertyBlock.SetBuffer(VoxelMaterialPropertyIds.ChunkAabbBuffer, _chunkAabbBuffer);
+            }
         }
 
         private void PushMaterialPropertyBlock()
@@ -431,8 +441,96 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             _rtasHandle = InvalidHandle;
             _modelResidencyId = InvalidResidencyId;
             _paletteResidencyId = InvalidResidencyId;
+            _chunkAabbBuffer = null;
             _resolvedBootstrapVersion = InvalidBootstrapVersion;
             _boundBootstrap = null;
+        }
+
+        private void LogRegistrationFailure(
+            VoxelRuntimeServices runtime,
+            VoxelRuntimeBootstrap bootstrap,
+            bool hasModelDescriptor,
+            VoxelModelResourceDescriptor modelDescriptor,
+            RayTracingAABBsInstanceConfig instanceConfig,
+            Exception exception)
+        {
+            StringBuilder builder = new StringBuilder(1024);
+            builder.AppendLine("VoxelRenderer registration failed.");
+            builder.AppendLine($"Exception={exception.GetType().Name}: {exception.Message}");
+            builder.AppendLine($"Renderer='{name}', Active={isActiveAndEnabled}, Layer={gameObject.layer}, Mask={_mask}");
+            builder.AppendLine(
+                $"Bootstrap='{(bootstrap != null ? bootstrap.name : "<null>")}', " +
+                $"BootstrapInitialized={(bootstrap != null && bootstrap.IsInitialized)}, " +
+                $"BootstrapVersion={(bootstrap != null ? bootstrap.Version : InvalidBootstrapVersion)}");
+            builder.AppendLine(
+                $"SupportsRayTracing={SystemInfo.supportsRayTracing}, GraphicsDeviceType={SystemInfo.graphicsDeviceType}");
+            builder.AppendLine(
+                $"Material='{(_material != null ? _material.name : "<null>")}', " +
+                $"Shader='{(_material != null && _material.shader != null ? _material.shader.name : "<null>")}', " +
+                $"OpaqueMaterial={_opaqueMaterial}, DynamicGeometry={_dynamicGeometry}, " +
+                $"OverrideBuildFlags={_overrideBuildFlags}, BuildFlags={_buildFlags}");
+            builder.AppendLine(
+                $"Residency: ModelId={_modelResidencyId}, PaletteId={_paletteResidencyId}, " +
+                $"ScenePropertyBlockReady={_scenePropertyBlock != null}, ChunkAabbBufferReady={_chunkAabbBuffer != null}");
+
+            if (_material != null && _material.shader != null)
+            {
+                Shader shader = _material.shader;
+                ShaderTagId lightModeTag = new ShaderTagId("LightMode");
+                builder.AppendLine($"ShaderPassCount={shader.passCount}");
+                for (int passIndex = 0; passIndex < shader.passCount; passIndex++)
+                {
+                    string passName = _material.GetPassName(passIndex);
+                    string lightMode = shader.FindPassTagValue(passIndex, lightModeTag).name;
+                    builder.AppendLine($"  Pass[{passIndex}]: Name='{passName}', LightMode='{lightMode}'");
+                }
+            }
+
+            if (hasModelDescriptor)
+            {
+                builder.AppendLine(
+                    $"ProceduralAabb: Count={modelDescriptor.ProceduralAabbCount}, " +
+                    $"Buffer={DescribeBuffer(modelDescriptor.ProceduralAabbBuffer)}");
+            }
+
+            builder.AppendLine(
+                $"ConfigMaterialProperties={(instanceConfig.materialProperties != null)}, " +
+                $"ConfigMask={instanceConfig.mask}, ConfigLayer={instanceConfig.layer}, " +
+                $"ConfigOpaque={instanceConfig.opaqueMaterial}, ConfigDynamic={instanceConfig.dynamicGeometry}, " +
+                $"ConfigAabbOffset={instanceConfig.aabbOffset}");
+
+            if (runtime != null && !runtime.IsDisposed)
+            {
+                builder.AppendLine("GlobalBuffers:");
+                builder.AppendLine($"  OccupancyChunkBuffer={DescribeBuffer(runtime.GpuResourceSystem.OccupancyChunkBuffer)}");
+                builder.AppendLine($"  VoxelDataChunkBuffer={DescribeBuffer(runtime.GpuResourceSystem.VoxelDataChunkBuffer)}");
+                builder.AppendLine($"  ModelChunkStartBuffer={DescribeBuffer(runtime.GpuResourceSystem.ModelChunkStartBuffer)}");
+                builder.AppendLine($"  PaletteChunkBuffer={DescribeBuffer(runtime.GpuResourceSystem.PaletteChunkBuffer)}");
+                builder.AppendLine($"  PaletteChunkStartBuffer={DescribeBuffer(runtime.GpuResourceSystem.PaletteChunkStartBuffer)}");
+                builder.AppendLine($"  SurfaceTypeTableBuffer={DescribeBuffer(runtime.GpuResourceSystem.SurfaceTypeTableBuffer)}");
+                builder.AppendLine(
+                    $"  Strides: ModelChunkStart={runtime.GpuResourceSystem.ModelChunkStartStrideBytes}, " +
+                    $"PaletteChunkStart={runtime.GpuResourceSystem.PaletteChunkStartStrideBytes}, " +
+                    $"SurfaceTypeTable={runtime.GpuResourceSystem.SurfaceTypeTableStrideBytes}, " +
+                    $"SurfaceTypeEntryCount={runtime.GpuResourceSystem.SurfaceTypeEntryCount}");
+            }
+
+            string diagnostics = builder.ToString();
+            if (!string.Equals(_lastRegistrationFailureDiagnostics, diagnostics, StringComparison.Ordinal))
+            {
+                _lastRegistrationFailureDiagnostics = diagnostics;
+                Debug.LogError(diagnostics, this);
+            }
+        }
+
+        private static string DescribeBuffer(GraphicsBuffer buffer)
+        {
+            if (buffer == null)
+            {
+                return "<null>";
+            }
+
+            return $"count={buffer.count}, stride={buffer.stride}, target={buffer.target}";
         }
 
         private bool TryResolveBootstrap(out VoxelRuntimeBootstrap bootstrap)

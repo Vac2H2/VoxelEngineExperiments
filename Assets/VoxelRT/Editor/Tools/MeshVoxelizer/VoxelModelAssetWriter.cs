@@ -2,7 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using VoxelRT.Runtime.Data;
-using VoxelRT.Runtime.Rendering.ModelProceduralAabb;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace VoxelRT.Editor.Tools.MeshVoxelizer
 {
@@ -21,47 +21,44 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             }
 
             VoxelModel asset = targetModel;
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset internal begin | path={assetPath}");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t=0 ms | WriteAsset internal begin | path={assetPath}");
             if (asset == null)
             {
+                MeshVoxelizerGpu.AppendTraceLine("WriteAsset create asset begin");
+                MeshVoxelizerGpu.EmitDebugLog("MeshVoxelizer write | CreateAsset begin");
                 asset = ScriptableObject.CreateInstance<VoxelModel>();
                 AssetDatabase.CreateAsset(asset, assetPath);
+                MeshVoxelizerGpu.AppendTraceLine($"WriteAsset create asset end | t={stopwatch.ElapsedMilliseconds} ms");
+                MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | CreateAsset end");
             }
 
-            SerializedObject serializedObject = new SerializedObject(asset);
-            serializedObject.Update();
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset overwrite data begin | chunks={result.ChunkCount}");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | OverwriteData begin | chunks={result.ChunkCount}");
+            asset.OverwriteData(
+                result.ChunkCount,
+                result.OccupancyBytes,
+                result.VoxelBytes,
+                result.ChunkAabbs);
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset overwrite data end | t={stopwatch.ElapsedMilliseconds} ms");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | OverwriteData end");
 
-            serializedObject.FindProperty("_chunkCount").intValue = result.ChunkCount;
-            SetByteArray(serializedObject.FindProperty("_occupancyBytes"), result.OccupancyBytes);
-            SetByteArray(serializedObject.FindProperty("_voxelBytes"), result.VoxelBytes);
-            SetChunkAabbArray(serializedObject.FindProperty("_chunkAabbs"), result.ChunkAabbs);
-
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-            asset.InvalidateResidency();
-
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset SetDirty begin | t={stopwatch.ElapsedMilliseconds} ms");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | SetDirty begin");
             EditorUtility.SetDirty(asset);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(asset));
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset SetDirty end | t={stopwatch.ElapsedMilliseconds} ms");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | SetDirty end");
+
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset SaveAssetIfDirty begin | t={stopwatch.ElapsedMilliseconds} ms");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | SaveAssetIfDirty begin");
+            AssetDatabase.SaveAssetIfDirty(asset);
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset SaveAssetIfDirty end | t={stopwatch.ElapsedMilliseconds} ms");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | SaveAssetIfDirty end");
+
+            MeshVoxelizerGpu.AppendTraceLine($"WriteAsset internal end | t={stopwatch.ElapsedMilliseconds} ms");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | WriteAsset internal end");
             return asset;
-        }
-
-        private static void SetByteArray(SerializedProperty property, byte[] values)
-        {
-            property.arraySize = values.Length;
-            for (int i = 0; i < values.Length; i++)
-            {
-                property.GetArrayElementAtIndex(i).intValue = values[i];
-            }
-        }
-
-        private static void SetChunkAabbArray(SerializedProperty property, ModelChunkAabb[] values)
-        {
-            property.arraySize = values.Length;
-            for (int i = 0; i < values.Length; i++)
-            {
-                SerializedProperty element = property.GetArrayElementAtIndex(i);
-                element.FindPropertyRelative("Min").vector3Value = values[i].Min;
-                element.FindPropertyRelative("Max").vector3Value = values[i].Max;
-            }
         }
     }
 }

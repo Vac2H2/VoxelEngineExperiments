@@ -119,6 +119,73 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &15439780
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 15439783}
+  - component: {fileID: 15439782}
+  - component: {fileID: 15439781}
+  m_Layer: 0
+  m_Name: Dragon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &15439781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 15439780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 860a88caad534e36a31a2079421d7b19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelRenderer
+  _voxelFilter: {fileID: 15439782}
+  _bootstrap: {fileID: 144486985}
+  _material: {fileID: 2100000, guid: 40cb113562914b118cf80904bcca2419, type: 2}
+  _mask: 255
+  _opaqueMaterial: 1
+  _dynamicGeometry: 0
+  _overrideBuildFlags: 0
+  _buildFlags: 1
+--- !u!114 &15439782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 15439780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d09b92a0a1e49a0bcaaea474c5e4e39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelFilter
+  _model: {fileID: 11400000, guid: 75a4590e49b5e7b479b054b5126bd6d6, type: 2}
+  _palette: {fileID: 11400000, guid: 173891885e045ab44b5da964d5031a28, type: 2}
+--- !u!4 &15439783
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 15439780}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.6818707, z: 0, w: 0.7314728}
+  m_LocalPosition: {x: -9.1, y: -3.7, z: -0.67}
+  m_LocalScale: {x: 17.21, y: 17.21, z: 17.21}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -6.82, z: 0}
 --- !u!1 &144486984
 GameObject:
   m_ObjectHideFlags: 0
@@ -361,3 +428,4 @@ SceneRoots:
   - {fileID: 963194228}
   - {fileID: 705507995}
   - {fileID: 144486986}
+  - {fileID: 15439783}

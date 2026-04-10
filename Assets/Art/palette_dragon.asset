@@ -19,7 +19,7 @@ MonoBehaviour:
     SurfaceType: 0
   - Color:
       serializedVersion: 2
-      rgba: 0
+      rgba: 16777215
     SurfaceType: 0
   - Color:
       serializedVersion: 2

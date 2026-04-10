@@ -28,43 +28,19 @@ namespace VoxelRT.Runtime.Rendering.RayTracingScene
 
         public bool HasPendingBuild { get; private set; }
 
-        public int AddInstance(in RayTracingSceneInstanceDescriptor descriptor)
+        public int AddInstance(in RayTracingAABBsInstanceConfig config, Matrix4x4 localToWorld)
         {
             EnsureNotDisposed();
-            descriptor.Validate();
+            ValidateProceduralConfig(in config);
+            int handle = _accelerationStructure.AddInstance(config, localToWorld, 0u);
 
-            int handle;
-            switch (descriptor.Geometry.Kind)
+            if (handle == 0)
             {
-                case RayTracingGeometryKind.Mesh:
-                    handle = _accelerationStructure.AddInstance(
-                        descriptor.CreateMeshConfig(),
-                        descriptor.LocalToWorld,
-                        descriptor.PreviousLocalToWorld,
-                        descriptor.ShaderInstanceId);
-                    break;
-
-                case RayTracingGeometryKind.Procedural:
-                    handle = _accelerationStructure.AddInstance(
-                        descriptor.CreateProceduralConfig(),
-                        descriptor.LocalToWorld,
-                        descriptor.ShaderInstanceId);
-                    break;
-
-                default:
-                    throw new InvalidOperationException($"Unsupported geometry kind {descriptor.Geometry.Kind}.");
+                throw CreateAddInstanceFailure(handle, in config);
             }
 
             HasPendingBuild = true;
-            return ValidateHandle(handle);
-        }
-
-        public int RecreateInstance(int handle, in RayTracingSceneInstanceDescriptor descriptor)
-        {
-            EnsureNotDisposed();
-            int newHandle = AddInstance(in descriptor);
-            RemoveInstance(handle);
-            return newHandle;
+            return handle;
         }
 
         public void RemoveInstance(int handle)
@@ -92,13 +68,6 @@ namespace VoxelRT.Runtime.Rendering.RayTracingScene
         {
             EnsureNotDisposed();
             _accelerationStructure.UpdateInstanceMask(ValidateHandle(handle), mask);
-            HasPendingBuild = true;
-        }
-
-        public void UpdateShaderId(int handle, uint shaderInstanceId)
-        {
-            EnsureNotDisposed();
-            _accelerationStructure.UpdateInstanceID(ValidateHandle(handle), shaderInstanceId);
             HasPendingBuild = true;
         }
 
@@ -157,9 +126,9 @@ namespace VoxelRT.Runtime.Rendering.RayTracingScene
 
         private static int ValidateHandle(int handle)
         {
-            if (handle < 0)
+            if (handle == 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(handle), "RTAS instance handle must be non-negative.");
+                throw new ArgumentOutOfRangeException(nameof(handle), "RTAS instance handle must be non-zero.");
             }
 
             return handle;
@@ -179,6 +148,40 @@ namespace VoxelRT.Runtime.Rendering.RayTracingScene
             {
                 throw new ObjectDisposedException(nameof(RayTracingScene));
             }
+        }
+
+        private static void ValidateProceduralConfig(in RayTracingAABBsInstanceConfig config)
+        {
+            if (config.aabbBuffer == null)
+            {
+                throw new ArgumentNullException(nameof(config.aabbBuffer));
+            }
+
+            if (config.aabbCount <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(config.aabbCount), "AABB count must be greater than zero.");
+            }
+
+            if (config.material == null)
+            {
+                throw new ArgumentNullException(nameof(config.material));
+            }
+        }
+
+        private static InvalidOperationException CreateAddInstanceFailure(
+            int handle,
+            in RayTracingAABBsInstanceConfig config)
+        {
+            string materialName = config.material != null ? config.material.name : "<null>";
+            string shaderName = config.material != null && config.material.shader != null
+                ? config.material.shader.name
+                : "<null>";
+
+            return new InvalidOperationException(
+                "Unity returned 0 while adding a procedural RTAS instance. " +
+                $"Handle={handle}, Material='{materialName}', Shader='{shaderName}', AabbCount={config.aabbCount}. " +
+                "This wrapper does not know the engine-side reason for the failure. " +
+                "Inspect the preceding Unity Console or Editor.log output for Unity's own diagnostics.");
         }
     }
 }

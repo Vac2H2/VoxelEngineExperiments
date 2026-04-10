@@ -40,6 +40,10 @@ It exposes:
 - raw chunk payload buffer
 - one chunk = `64` bytes
 - indexed by global chunk index
+- byte layout inside one chunk:
+  - one byte = one `x` row at fixed `(y, z)`
+  - bit `0..7` maps to `x = 0..7`
+  - byte order is `y` first, then `z`
 
 ### `VoxelDataChunkBuffer`
 

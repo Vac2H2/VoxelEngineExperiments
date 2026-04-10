@@ -2,20 +2,15 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using VoxelRT.Runtime.Data;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace VoxelRT.Editor.Tools.MeshVoxelizer
 {
-    internal enum MeshVoxelizationBackend
-    {
-        Cpu = 0,
-        Gpu = 1,
-    }
-
     public sealed class MeshToVoxelModelWindow : EditorWindow
     {
         [SerializeField] private Mesh _sourceMesh;
         [SerializeField] private VoxelModel _targetModel;
-        [SerializeField] private MeshVoxelizationBackend _backend = MeshVoxelizationBackend.Gpu;
+        [SerializeField] private string _targetModelPath;
         [SerializeField] private float _voxelSize = 0.1f;
         [SerializeField] private int _solidVoxelValue = 1;
 
@@ -32,8 +27,14 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
         {
             EditorGUILayout.LabelField("Source", EditorStyles.boldLabel);
             _sourceMesh = (Mesh)EditorGUILayout.ObjectField("Mesh", _sourceMesh, typeof(Mesh), false);
+            VoxelModel previousTargetModel = _targetModel;
             _targetModel = (VoxelModel)EditorGUILayout.ObjectField("Target Model", _targetModel, typeof(VoxelModel), false);
-            _backend = (MeshVoxelizationBackend)EditorGUILayout.EnumPopup("Backend", _backend);
+            if (_targetModel != previousTargetModel)
+            {
+                _targetModelPath = _targetModel != null
+                    ? AssetDatabase.GetAssetPath(_targetModel)
+                    : null;
+            }
             _voxelSize = EditorGUILayout.FloatField("Voxel Size", _voxelSize);
             _solidVoxelValue = EditorGUILayout.IntSlider("Solid Voxel Value", _solidVoxelValue, 1, 255);
 
@@ -50,15 +51,11 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
 
             EditorGUILayout.Space();
             EditorGUILayout.HelpBox(
-                "The tool assumes the mesh describes a closed solid. Open meshes will voxelize from overlap tests and may produce shell-like output.",
+                "The tool assumes the mesh describes a closed solid. It runs a GPU conservative surface pass, classifies solid interior from a padded dense volume, then compacts the result into the VoxelModel chunk format.",
                 MessageType.None);
-
-            if (_backend == MeshVoxelizationBackend.Gpu)
-            {
-                EditorGUILayout.HelpBox(
-                    "GPU mode uses compute-based point-in-mesh classification and then compacts non-empty chunks on the CPU when writing the asset.",
-                    MessageType.None);
-            }
+            EditorGUILayout.HelpBox(
+                "VoxelModel local space is rebased to the mesh bounds minimum corner, so chunk (0,0,0) starts at (0,0,0).",
+                MessageType.None);
 
             using (new EditorGUI.DisabledScope(_sourceMesh == null || _voxelSize <= 0f))
             {
@@ -88,31 +85,56 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
 
         private void Bake()
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            MeshVoxelizerGpu.AppendTraceLine("Bake begin");
+            MeshVoxelizerGpu.EmitDebugLog("MeshVoxelizer bake | t=0 ms | Bake begin");
+
+            MeshVoxelizerGpu.AppendTraceLine("ResolveTargetPath begin");
+            MeshVoxelizerGpu.EmitDebugLog("MeshVoxelizer bake | ResolveTargetPath begin");
             string assetPath = ResolveTargetPath();
+            MeshVoxelizerGpu.AppendTraceLine($"ResolveTargetPath end | t={stopwatch.ElapsedMilliseconds} ms | path={assetPath}");
+            MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer bake | t={stopwatch.ElapsedMilliseconds} ms | ResolveTargetPath end | path={assetPath}");
             if (string.IsNullOrEmpty(assetPath))
             {
+                MeshVoxelizerGpu.AppendTraceLine($"Bake aborted | t={stopwatch.ElapsedMilliseconds} ms | empty path");
+                MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer bake | t={stopwatch.ElapsedMilliseconds} ms | Bake aborted | empty path");
                 return;
             }
 
             try
             {
+                MeshVoxelizerGpu.AppendTraceLine($"Create settings begin | t={stopwatch.ElapsedMilliseconds} ms");
                 MeshVoxelizationSettings settings = new MeshVoxelizationSettings(
                     _voxelSize,
                     checked((byte)_solidVoxelValue));
-                MeshVoxelizationResult result = _backend == MeshVoxelizationBackend.Gpu
-                    ? MeshVoxelizerGpu.Voxelize(_sourceMesh, settings)
-                    : MeshVoxelizer.Voxelize(_sourceMesh, settings);
+                MeshVoxelizerGpu.AppendTraceLine($"Create settings end | t={stopwatch.ElapsedMilliseconds} ms");
+
+                MeshVoxelizerGpu.AppendTraceLine($"Voxelize begin | t={stopwatch.ElapsedMilliseconds} ms");
+                MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer bake | t={stopwatch.ElapsedMilliseconds} ms | Voxelize begin");
+                MeshVoxelizationResult result = MeshVoxelizerGpu.Voxelize(_sourceMesh, settings);
+                MeshVoxelizerGpu.AppendTraceLine($"Voxelize end | t={stopwatch.ElapsedMilliseconds} ms | chunks={result.ChunkCount}");
+                MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer bake | t={stopwatch.ElapsedMilliseconds} ms | Voxelize end | chunks={result.ChunkCount}");
+
+                MeshVoxelizerGpu.AppendTraceLine($"WriteAsset begin | t={stopwatch.ElapsedMilliseconds} ms | path={assetPath}");
+                MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer bake | t={stopwatch.ElapsedMilliseconds} ms | WriteAsset begin");
                 VoxelModel asset = VoxelModelAssetWriter.WriteAsset(_targetModel, assetPath, result);
+                MeshVoxelizerGpu.AppendTraceLine($"WriteAsset end | t={stopwatch.ElapsedMilliseconds} ms");
+                MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer bake | t={stopwatch.ElapsedMilliseconds} ms | WriteAsset end");
 
                 _targetModel = asset;
+                _targetModelPath = assetPath;
                 Selection.activeObject = asset;
                 EditorGUIUtility.PingObject(asset);
+                MeshVoxelizerGpu.AppendTraceLine($"Bake end | t={stopwatch.ElapsedMilliseconds} ms");
+                MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer bake | t={stopwatch.ElapsedMilliseconds} ms | Bake end");
             }
             catch (OperationCanceledException)
             {
+                MeshVoxelizerGpu.AppendTraceLine($"Bake canceled | t={stopwatch.ElapsedMilliseconds} ms");
             }
             catch (Exception exception)
             {
+                MeshVoxelizerGpu.AppendTraceLine($"Bake exception | t={stopwatch.ElapsedMilliseconds} ms | {exception.GetType().Name}: {exception.Message}");
                 Debug.LogException(exception);
                 EditorUtility.DisplayDialog("Mesh To Voxel Model", exception.Message, "OK");
             }
@@ -122,7 +144,17 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
         {
             if (_targetModel != null)
             {
-                return AssetDatabase.GetAssetPath(_targetModel);
+                if (!string.IsNullOrEmpty(_targetModelPath))
+                {
+                    VoxelModel loadedAsset = AssetDatabase.LoadAssetAtPath<VoxelModel>(_targetModelPath);
+                    if (loadedAsset == _targetModel)
+                    {
+                        return _targetModelPath;
+                    }
+                }
+
+                _targetModelPath = AssetDatabase.GetAssetPath(_targetModel);
+                return _targetModelPath;
             }
 
             string defaultName = _sourceMesh != null ? $"{_sourceMesh.name}.asset" : "VoxelModel.asset";

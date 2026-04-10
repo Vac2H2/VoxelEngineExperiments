@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb7a0fdad9d40c9a0f110273b52d2e9, type: 3}
+  m_Name: VoxelRayTracingFullscreenModule
+  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.RenderPipeline.VoxelRayTracingFullscreenModule
+  _isEnabled: 1
+  _submodules: []
+  _rayTracingShader: {fileID: 4807578003741378534, guid: f8cfc174232a43ada6c0c0b9c4312cbf, type: 3}
+  _shaderPassName: VoxelOccupancyDXR
+  _instanceInclusionMask: 255
+  _outputFormat: 48

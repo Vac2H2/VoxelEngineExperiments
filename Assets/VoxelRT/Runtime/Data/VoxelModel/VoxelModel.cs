@@ -44,6 +44,24 @@ namespace VoxelRT.Runtime.Data
             return new VoxelModelUpload(ChunkCount, occupancyBytes, voxelBytes, chunkAabbs);
         }
 
+        public void OverwriteData(
+            int chunkCount,
+            byte[] occupancyBytes,
+            byte[] voxelBytes,
+            ModelChunkAabb[] chunkAabbs)
+        {
+            if (chunkCount <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chunkCount), "Chunk count must be greater than zero.");
+            }
+
+            _chunkCount = chunkCount;
+            _occupancyBytes = occupancyBytes ?? throw new ArgumentNullException(nameof(occupancyBytes));
+            _voxelBytes = voxelBytes ?? throw new ArgumentNullException(nameof(voxelBytes));
+            _chunkAabbs = chunkAabbs ?? throw new ArgumentNullException(nameof(chunkAabbs));
+            InvalidateResidency();
+        }
+
         public void InvalidateResidency()
         {
             _residencyKey = new object();

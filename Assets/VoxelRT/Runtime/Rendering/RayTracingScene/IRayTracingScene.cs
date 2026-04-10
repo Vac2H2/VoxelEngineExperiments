@@ -10,9 +10,7 @@ namespace VoxelRT.Runtime.Rendering.RayTracingScene
 
         bool HasPendingBuild { get; }
 
-        int AddInstance(in RayTracingSceneInstanceDescriptor descriptor);
-
-        int RecreateInstance(int handle, in RayTracingSceneInstanceDescriptor descriptor);
+        int AddInstance(in RayTracingAABBsInstanceConfig config, Matrix4x4 localToWorld);
 
         void RemoveInstance(int handle);
 
@@ -21,8 +19,6 @@ namespace VoxelRT.Runtime.Rendering.RayTracingScene
         void UpdateTransform(int handle, Matrix4x4 localToWorld);
 
         void UpdateMask(int handle, uint mask);
-
-        void UpdateShaderId(int handle, uint shaderInstanceId);
 
         void UpdateMaterialPropertyBlock(int handle, MaterialPropertyBlock materialProperties);
 
