@@ -1,0 +1,99 @@
+#pragma kernel CSMain
+
+StructuredBuffer<float3> _Vertices;
+StructuredBuffer<uint> _Indices;
+RWStructuredBuffer<uint> _ChunkOccupancyWords;
+RWStructuredBuffer<uint> _ChunkFlags;
+
+int3 _GridDimensions;
+int3 _ChunkDimensions;
+float3 _BoundsMin;
+float _VoxelSize;
+int _TriangleCount;
+
+static const uint kChunkDimension = 8u;
+static const uint kOccupancyWordCountPerChunk = 16u;
+static const float3 kRayDirection = normalize(float3(0.57735026, 0.52981293, 0.62133676));
+static const float kRayEpsilon = 1e-5;
+
+bool RayIntersectsTriangle(float3 rayOrigin, float3 rayDirection, float3 v0, float3 v1, float3 v2)
+{
+    float3 edge1 = v1 - v0;
+    float3 edge2 = v2 - v0;
+    float3 pVec = cross(rayDirection, edge2);
+    float determinant = dot(edge1, pVec);
+
+    if (abs(determinant) < kRayEpsilon)
+    {
+        return false;
+    }
+
+    float invDeterminant = 1.0 / determinant;
+    float3 tVec = rayOrigin - v0;
+    float u = dot(tVec, pVec) * invDeterminant;
+    if (u <= kRayEpsilon || u >= (1.0 - kRayEpsilon))
+    {
+        return false;
+    }
+
+    float3 qVec = cross(tVec, edge1);
+    float v = dot(rayDirection, qVec) * invDeterminant;
+    if (v <= kRayEpsilon || (u + v) >= (1.0 - kRayEpsilon))
+    {
+        return false;
+    }
+
+    float t = dot(edge2, qVec) * invDeterminant;
+    return t > kRayEpsilon;
+}
+
+bool IsInsideMesh(float3 sampleCenter)
+{
+    float3 rayOrigin = sampleCenter + (kRayDirection * (_VoxelSize * 1e-3));
+    uint hitCount = 0u;
+
+    [loop]
+    for (int triangleIndex = 0; triangleIndex < _TriangleCount; triangleIndex++)
+    {
+        uint baseIndex = triangleIndex * 3u;
+        float3 v0 = _Vertices[_Indices[baseIndex]];
+        float3 v1 = _Vertices[_Indices[baseIndex + 1u]];
+        float3 v2 = _Vertices[_Indices[baseIndex + 2u]];
+
+        if (RayIntersectsTriangle(rayOrigin, kRayDirection, v0, v1, v2))
+        {
+            hitCount++;
+        }
+    }
+
+    return (hitCount & 1u) != 0u;
+}
+
+[numthreads(4, 4, 4)]
+void CSMain(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    if (dispatchThreadId.x >= (uint)_GridDimensions.x ||
+        dispatchThreadId.y >= (uint)_GridDimensions.y ||
+        dispatchThreadId.z >= (uint)_GridDimensions.z)
+    {
+        return;
+    }
+
+    float3 sampleCenter = _BoundsMin + ((float3)dispatchThreadId + 0.5) * _VoxelSize;
+    if (!IsInsideMesh(sampleCenter))
+    {
+        return;
+    }
+
+    uint3 chunkCoord = dispatchThreadId / kChunkDimension;
+    uint3 localCoord = dispatchThreadId - (chunkCoord * kChunkDimension);
+    uint localIndex = localCoord.x + (kChunkDimension * (localCoord.y + (kChunkDimension * localCoord.z)));
+    uint occupancyWordIndex = localIndex >> 5;
+    uint occupancyMask = 1u << (localIndex & 31u);
+
+    uint chunkIndex = chunkCoord.x +
+        ((uint)_ChunkDimensions.x * (chunkCoord.y + ((uint)_ChunkDimensions.y * chunkCoord.z)));
+
+    InterlockedOr(_ChunkOccupancyWords[(chunkIndex * kOccupancyWordCountPerChunk) + occupancyWordIndex], occupancyMask);
+    InterlockedOr(_ChunkFlags[chunkIndex], 1u);
+}

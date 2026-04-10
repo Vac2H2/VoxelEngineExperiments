@@ -133,13 +133,13 @@ Recommended layering:
 
 1. `VoxelGpuResourceSystem`
    - owns voxel GPU data resources by domain
-2. `VoxelProceduralGeometryProvider`
+2. instance owner such as `VoxelRenderer`
    - consumes the read-side `IVoxelGpuResourceView`
    - translates model-domain resources into RTAS procedural descriptors
-3. `RayTracingInstanceRegistry`
-   - owns scene instance ids and instance state
-4. `RayTracingSceneService`
-   - performs RTAS registration and updates
+3. caller-owned material payload assembly
+   - places `modelResidencyId`, `paletteResidencyId`, and future ids directly into per-instance material payload
+4. `RayTracingScene`
+   - performs RTAS registration and updates by handle
 5. render binder
    - globally binds the current voxel GPU buffers before dispatch
 

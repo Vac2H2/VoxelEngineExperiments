@@ -1,0 +1,18 @@
+{
+  "name": "VoxelRT.Editor",
+  "rootNamespace": "VoxelRT",
+  "references": [
+    "VoxelRT.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

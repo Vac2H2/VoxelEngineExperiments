@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace VoxelRT.Runtime.Rendering.ModelProceduralAabb
 {
+    [System.Serializable]
     [StructLayout(LayoutKind.Sequential)]
     public struct ModelChunkAabb
     {

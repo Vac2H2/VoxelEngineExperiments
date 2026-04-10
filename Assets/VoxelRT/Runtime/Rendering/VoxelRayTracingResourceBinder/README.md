@@ -79,5 +79,5 @@ This avoids stale `GraphicsBuffer` references when residency services recreate i
 ## Notes
 
 - This binder intentionally depends only on `IVoxelGpuResourceView`.
-- It does not depend on `VoxelProceduralGeometryProvider`, `RayTracingInstanceRegistry`, or `RayTracingSceneService`.
+- It does not depend on `VoxelRenderer` or `RayTracingScene`.
 - The current implementation requires all voxel resource buffers to be available before binding.

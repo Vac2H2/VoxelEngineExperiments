@@ -6,6 +6,11 @@ namespace VoxelRT.Runtime.Rendering.PaletteChunkResidency
         public const uint EntryStrideBytes = 4;
         public const uint FixedChunkStrideBytes = EntryCount * EntryStrideBytes;
 
+        public PaletteChunkStore()
+        {
+            EnsureCapacity(1u);
+        }
+
         protected override uint FixedStrideBytes => FixedChunkStrideBytes;
 
         public uint ChunkStrideBytes => FixedChunkStrideBytes;

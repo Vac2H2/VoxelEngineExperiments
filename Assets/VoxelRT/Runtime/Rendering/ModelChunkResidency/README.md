@@ -111,10 +111,10 @@ Released ids are returned to an internal free-list and may be reused later.
 
 ## Expected Shader Mapping
 
-For the pure model-residency path, the intended mapping is:
+For the direct material-payload path, the intended mapping is:
 
 ```hlsl
-uint modelResidencyId = InstanceID();
+uint modelResidencyId = ...;
 uint startSlot = _ModelChunkStartBuffer[modelResidencyId];
 uint globalChunkIndex = startSlot + PrimitiveIndex();
 ```
@@ -125,10 +125,6 @@ This assumes:
 - multiple RTAS instances may reference the same resident model
 - `PrimitiveIndex()` maps 1:1 to the model's local chunk index
 - the RTAS AABB order matches the model chunk order
-
-If your rendering path needs scene-instance data, add another layer outside this module:
-
-- `sceneInstanceId -> modelResidencyId`
 
 Do not put scene-instance ownership back into `ModelChunkResidency`.
 
@@ -160,9 +156,9 @@ Recommended layering:
 
 1. `ModelChunkResidencyService`
    - owns model deduplication and model-to-chunk residency
-2. `SceneInstanceRegistry` or equivalent
-   - owns scene instance ids and maps instances to `modelResidencyId`
+2. caller-owned material payload assembly
+   - references `modelResidencyId` where needed
 3. RTAS management
-   - owns `AddInstance`, `RemoveInstance`, transforms, masks, and rebuilds
+   - owns RTAS handles, `AddInstance`, `RemoveInstance`, transforms, masks, and rebuilds
 
 This keeps model deduplication, scene lifetime, and RTAS lifetime separated.

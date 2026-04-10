@@ -14,6 +14,7 @@ namespace VoxelRT.Runtime.Rendering.SurfaceTypeTableService
         public SurfaceTypeTableService()
         {
             _surfaceTypeTableBuffer = CreateBuffer();
+            _surfaceTypeTableBuffer.SetData(new uint[FixedEntryCount]);
         }
 
         public GraphicsBuffer SurfaceTypeTableBuffer => _surfaceTypeTableBuffer;

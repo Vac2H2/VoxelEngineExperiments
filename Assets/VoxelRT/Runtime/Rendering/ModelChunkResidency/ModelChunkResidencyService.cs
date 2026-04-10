@@ -35,6 +35,7 @@ namespace VoxelRT.Runtime.Rendering.ModelChunkResidency
             _occupancyStore = occupancyStore ?? throw new ArgumentNullException(nameof(occupancyStore));
             _voxelDataStore = voxelDataStore ?? throw new ArgumentNullException(nameof(voxelDataStore));
             _ownsDependencies = ownsDependencies;
+            ResizeModelChunkStartStorage(0);
         }
 
         public GraphicsBuffer OccupancyChunkBuffer => _occupancyStore.Buffer;
@@ -194,11 +195,9 @@ namespace VoxelRT.Runtime.Rendering.ModelChunkResidency
                 totalChunkCount = checked(totalChunkCount + residentEntries[i].ChunkCount);
             }
 
-            if (totalChunkCount > 0)
-            {
-                _occupancyStore.EnsureCapacity(totalChunkCount);
-                _voxelDataStore.EnsureCapacity(totalChunkCount);
-            }
+            uint targetChunkCapacity = Math.Max(totalChunkCount, 1u);
+            _occupancyStore.EnsureCapacity(targetChunkCapacity);
+            _voxelDataStore.EnsureCapacity(targetChunkCapacity);
 
             for (int i = 0; i < _modelChunkStartSlots.Length; i++)
             {
@@ -316,7 +315,8 @@ namespace VoxelRT.Runtime.Rendering.ModelChunkResidency
 
         private void ResizeModelChunkStartStorage(int entryCount)
         {
-            uint[] resizedStarts = new uint[entryCount];
+            int storageEntryCount = Math.Max(entryCount, 1);
+            uint[] resizedStarts = new uint[storageEntryCount];
             for (int i = 0; i < resizedStarts.Length; i++)
             {
                 resizedStarts[i] = InvalidStartSlot;
@@ -329,13 +329,11 @@ namespace VoxelRT.Runtime.Rendering.ModelChunkResidency
             _modelChunkStartBuffer?.Dispose();
             _modelChunkStartBuffer = null;
 
-            if (entryCount > 0)
-            {
-                _modelChunkStartBuffer = new GraphicsBuffer(
-                    GraphicsBuffer.Target.Structured,
-                    entryCount,
-                    checked((int)ModelChunkStartStrideBytesValue));
-            }
+            _modelChunkStartBuffer = new GraphicsBuffer(
+                GraphicsBuffer.Target.Structured,
+                storageEntryCount,
+                checked((int)ModelChunkStartStrideBytesValue));
+            UploadAllModelChunkStarts();
         }
 
         private sealed class ResidencyEntry

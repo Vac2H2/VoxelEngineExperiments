@@ -32,6 +32,7 @@ namespace VoxelRT.Runtime.Rendering.PaletteChunkResidency
             _allocator = allocator ?? throw new ArgumentNullException(nameof(allocator));
             _paletteChunkStore = paletteChunkStore ?? throw new ArgumentNullException(nameof(paletteChunkStore));
             _ownsDependencies = ownsDependencies;
+            ResizePaletteChunkStartStorage(0);
         }
 
         public GraphicsBuffer PaletteChunkBuffer => _paletteChunkStore.Buffer;
@@ -165,10 +166,7 @@ namespace VoxelRT.Runtime.Rendering.PaletteChunkResidency
             _allocator.Reset();
             _paletteChunkStore.Dispose();
 
-            if (residentEntries.Count > 0)
-            {
-                _paletteChunkStore.EnsureCapacity(checked((uint)residentEntries.Count));
-            }
+            _paletteChunkStore.EnsureCapacity(Math.Max(checked((uint)residentEntries.Count), 1u));
 
             for (int i = 0; i < _paletteChunkStartSlots.Length; i++)
             {
@@ -283,7 +281,8 @@ namespace VoxelRT.Runtime.Rendering.PaletteChunkResidency
 
         private void ResizePaletteChunkStartStorage(int entryCount)
         {
-            uint[] resizedStarts = new uint[entryCount];
+            int storageEntryCount = Math.Max(entryCount, 1);
+            uint[] resizedStarts = new uint[storageEntryCount];
             for (int i = 0; i < resizedStarts.Length; i++)
             {
                 resizedStarts[i] = InvalidStartSlot;
@@ -296,13 +295,11 @@ namespace VoxelRT.Runtime.Rendering.PaletteChunkResidency
             _paletteChunkStartBuffer?.Dispose();
             _paletteChunkStartBuffer = null;
 
-            if (entryCount > 0)
-            {
-                _paletteChunkStartBuffer = new GraphicsBuffer(
-                    GraphicsBuffer.Target.Structured,
-                    entryCount,
-                    checked((int)PaletteChunkStartStrideBytesValue));
-            }
+            _paletteChunkStartBuffer = new GraphicsBuffer(
+                GraphicsBuffer.Target.Structured,
+                storageEntryCount,
+                checked((int)PaletteChunkStartStrideBytesValue));
+            UploadAllPaletteChunkStarts();
         }
 
         private sealed class ResidencyEntry

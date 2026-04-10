@@ -1,3 +1,4 @@
 ﻿<Solution>
   <Project Path="VoxelRT.Runtime.csproj" />
+  <Project Path="VoxelRT.Editor.csproj" />
 </Solution>
