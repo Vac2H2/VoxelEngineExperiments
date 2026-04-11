@@ -9,16 +9,19 @@ namespace VoxelRT.Runtime.Rendering.VoxelRuntime
     {
         private IVoxelGpuResourceSystem _gpuResourceSystem;
         private IRayTracingScene _rayTracingScene;
+        private IRayTracingScene _opaqueRayTracingScene;
         private IVoxelRayTracingResourceBinder _resourceBinder;
         private bool _isDisposed;
 
         public VoxelRuntime(
             IVoxelGpuResourceSystem gpuResourceSystem,
             IRayTracingScene rayTracingScene,
+            IRayTracingScene opaqueRayTracingScene,
             IVoxelRayTracingResourceBinder resourceBinder)
         {
             _gpuResourceSystem = gpuResourceSystem ?? throw new ArgumentNullException(nameof(gpuResourceSystem));
             _rayTracingScene = rayTracingScene ?? throw new ArgumentNullException(nameof(rayTracingScene));
+            _opaqueRayTracingScene = opaqueRayTracingScene ?? throw new ArgumentNullException(nameof(opaqueRayTracingScene));
             _resourceBinder = resourceBinder ?? throw new ArgumentNullException(nameof(resourceBinder));
         }
 
@@ -42,6 +45,15 @@ namespace VoxelRT.Runtime.Rendering.VoxelRuntime
             }
         }
 
+        public IRayTracingScene OpaqueRayTracingScene
+        {
+            get
+            {
+                EnsureAlive();
+                return _opaqueRayTracingScene;
+            }
+        }
+
         public IVoxelRayTracingResourceBinder ResourceBinder
         {
             get
@@ -60,6 +72,11 @@ namespace VoxelRT.Runtime.Rendering.VoxelRuntime
                 _rayTracingScene.Build();
             }
 
+            if (autoBuildScene && _opaqueRayTracingScene.HasPendingBuild)
+            {
+                _opaqueRayTracingScene.Build();
+            }
+
             if (autoBindGlobals)
             {
                 _resourceBinder.BindGlobals();
@@ -75,8 +92,10 @@ namespace VoxelRT.Runtime.Rendering.VoxelRuntime
 
             _resourceBinder = null;
             _rayTracingScene.Dispose();
+            _opaqueRayTracingScene.Dispose();
             _gpuResourceSystem.Dispose();
             _rayTracingScene = null;
+            _opaqueRayTracingScene = null;
             _gpuResourceSystem = null;
             _isDisposed = true;
         }

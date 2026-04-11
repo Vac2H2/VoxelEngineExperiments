@@ -36,6 +36,8 @@ namespace VoxelRT.Runtime.Rendering.VoxelRuntime
 
         public IRayTracingScene RayTracingScene => Runtime.RayTracingScene;
 
+        public IRayTracingScene OpaqueRayTracingScene => Runtime.OpaqueRayTracingScene;
+
         public IVoxelRayTracingResourceBinder ResourceBinder => Runtime.ResourceBinder;
 
         public bool CanServe(GameObject owner)
@@ -104,18 +106,21 @@ namespace VoxelRT.Runtime.Rendering.VoxelRuntime
 
             IVoxelGpuResourceSystem gpuResourceSystem = null;
             IRayTracingScene rayTracingScene = null;
+            IRayTracingScene opaqueRayTracingScene = null;
 
             try
             {
                 gpuResourceSystem = new VoxelGpuResourceSystem.VoxelGpuResourceSystem();
                 rayTracingScene = new RayTracingScene.RayTracingScene();
+                opaqueRayTracingScene = new RayTracingScene.RayTracingScene();
                 IVoxelRayTracingResourceBinder resourceBinder = new VoxelRayTracingResourceBinder.VoxelRayTracingResourceBinder(gpuResourceSystem);
-                _runtime = new VoxelRuntime(gpuResourceSystem, rayTracingScene, resourceBinder);
+                _runtime = new VoxelRuntime(gpuResourceSystem, rayTracingScene, opaqueRayTracingScene, resourceBinder);
                 _version++;
                 VoxelRuntimeUpdateUtility.RequestEditorUpdate();
             }
             catch
             {
+                opaqueRayTracingScene?.Dispose();
                 rayTracingScene?.Dispose();
                 gpuResourceSystem?.Dispose();
                 throw;

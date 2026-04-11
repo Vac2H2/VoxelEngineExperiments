@@ -15,8 +15,10 @@ namespace VoxelRT.Runtime.Rendering.RenderPipeline
         private const float MinimumRayT = 0.001f;
 
         private static readonly int RayTracingAccelerationStructureId = Shader.PropertyToID("_RaytracingAccelerationStructure");
+        private static readonly int OpaqueRayTracingAccelerationStructureId = Shader.PropertyToID("_OpaqueRaytracingAccelerationStructure");
         private static readonly int PixelCoordToViewDirWsId = Shader.PropertyToID("_PixelCoordToViewDirWS");
         private static readonly int CameraPositionWsId = Shader.PropertyToID("_CameraPositionWS");
+        private static readonly int CameraForwardWsId = Shader.PropertyToID("_CameraForwardWS");
         private static readonly int RayTMinId = Shader.PropertyToID("_RayTMin");
         private static readonly int RayTMaxId = Shader.PropertyToID("_RayTMax");
         private static readonly int LayerMaskId = Shader.PropertyToID("_LayerMask");
@@ -92,18 +94,29 @@ namespace VoxelRT.Runtime.Rendering.RenderPipeline
                 _rayTracingShader,
                 RayTracingAccelerationStructureId,
                 runtime.RayTracingScene.AccelerationStructure);
+            commandBuffer.SetRayTracingAccelerationStructure(
+                _rayTracingShader,
+                OpaqueRayTracingAccelerationStructureId,
+                runtime.OpaqueRayTracingScene.AccelerationStructure);
             commandBuffer.SetRayTracingMatrixParam(
                 _rayTracingShader,
                 PixelCoordToViewDirWsId,
                 ComputePixelCoordToWorldSpaceViewDirectionMatrix(camera, width, height));
 
             Vector3 cameraPosition = camera.transform.position;
+            Vector3 cameraForward = camera.transform.forward;
             commandBuffer.SetRayTracingVectorParam(
                 _rayTracingShader,
                 CameraPositionWsId,
                 new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 0.0f));
+            commandBuffer.SetRayTracingVectorParam(
+                _rayTracingShader,
+                CameraForwardWsId,
+                new Vector4(cameraForward.x, cameraForward.y, cameraForward.z, 0.0f));
 
-            float rayTMin = Mathf.Max(camera.nearClipPlane, MinimumRayT);
+            // For voxel procedural traversal we do not want the camera near clip
+            // plane to slice chunk space before reaching the first occupied voxel.
+            float rayTMin = MinimumRayT;
             float rayTMax = Mathf.Max(camera.farClipPlane, rayTMin);
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, RayTMinId, rayTMin);
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, RayTMaxId, rayTMax);

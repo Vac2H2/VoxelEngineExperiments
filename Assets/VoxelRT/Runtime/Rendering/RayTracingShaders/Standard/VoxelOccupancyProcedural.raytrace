@@ -6,14 +6,57 @@
 #include "VoxelOccupancyProceduralShared.hlsl"
 
 RaytracingAccelerationStructure _RaytracingAccelerationStructure;
+RaytracingAccelerationStructure _OpaqueRaytracingAccelerationStructure;
 
 float4x4 _PixelCoordToViewDirWS;
 float3 _CameraPositionWS;
+float3 _CameraForwardWS;
 float _RayTMin;
 float _RayTMax;
 uint _LayerMask;
 
 RWTexture2D<float4> _Output;
+
+static const float kSecondaryRayTOffset = 1e-4;
+
+bool IsTransparentHit(RayPayload payload)
+{
+    return (payload.flags & kRayPayloadFlagTransparentHit) != 0u;
+}
+
+float3 ShadePayload(RayPayload payload)
+{
+    uint faceId = DecodeFaceId(payload.packedNormalAndPaletteId);
+    float3 normal = DecodeFaceNormal(faceId);
+    float3 normalCalibrated = normal * 0.5 + 0.5;
+    float3 lightDir = normalize(float3(0.48, 0.75, 0.46));
+    float lighting = 0.35 + 0.65 * saturate(dot(normal, lightDir));
+    return lerp(1.0.xxx, normalCalibrated, 0.35) * lighting;
+}
+
+RayPayload TraceScene(
+    RaytracingAccelerationStructure scene,
+    RayDesc ray,
+    uint layerMask)
+{
+    RayPayload payload;
+    payload.hit = 0u;
+    payload.hitT = 0.0;
+    payload.packedNormalAndPaletteId = 0u;
+    payload.flags = 0u;
+
+    TraceRay(
+        scene,
+        RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
+        layerMask,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    return payload;
+}
 
 [shader("raygeneration")]
 void RayGenMain()
@@ -22,35 +65,37 @@ void RayGenMain()
     uint2 pixel = launchIndex.xy;
 
     RayDesc ray;
-    ray.TMin = max(_RayTMin, 0.001);
-    ray.TMax = max(_RayTMax, ray.TMin);
     ray.Origin = _CameraPositionWS;
     ray.Direction = -normalize(mul(float4((float2)pixel + 0.5, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
+    float nearPlaneT = _RayTMin / max(dot(ray.Direction, _CameraForwardWS), 1e-6);
+    ray.TMin = max(nearPlaneT, 1e-5);
+    ray.TMax = max(_RayTMax, ray.TMin);
 
-    RayPayload payload;
-    payload.hit = 0u;
-    payload.hitT = 0.0;
-    payload.packedNormalAndPaletteId = 0u;
-
-    TraceRay(
-        _RaytracingAccelerationStructure,
-        RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
-        _LayerMask,
-        0,
-        1,
-        0,
-        ray,
-        payload);
+    RayPayload payload = TraceScene(_RaytracingAccelerationStructure, ray, _LayerMask);
 
     float3 color = 0.0;
     if (payload.hit != 0u)
     {
-        uint faceId = DecodeFaceId(payload.packedNormalAndPaletteId);
-        float3 normal = DecodeFaceNormal(faceId);
-        float3 normalCalibrated = normal * 0.5 + 0.5;
-        float3 lightDir = normalize(float3(0.48, 0.75, 0.46));
-        float lighting = 0.35 + 0.65 * saturate(dot(normal, lightDir));
-        color = lerp(1.0.xxx, normalCalibrated, 0.35) * lighting;
+        bool keepTransparent = ShouldKeepScreenDoorHitForPixel(pixel);
+        if (IsTransparentHit(payload) && !keepTransparent)
+        {
+            RayDesc opaqueRay = ray;
+            opaqueRay.TMin = min(
+                ray.TMax,
+                max(payload.hitT + kSecondaryRayTOffset, ray.TMin));
+            RayPayload opaquePayload = TraceScene(
+                _OpaqueRaytracingAccelerationStructure,
+                opaqueRay,
+                _LayerMask);
+            if (opaquePayload.hit != 0u)
+            {
+                color = ShadePayload(opaquePayload);
+            }
+        }
+        else
+        {
+            color = ShadePayload(payload);
+        }
     }
 
     _Output[pixel] = float4(color, 1.0);
@@ -62,4 +107,5 @@ void MissMain(inout RayPayload payload : SV_RayPayload)
     payload.hit = 0u;
     payload.hitT = 0.0;
     payload.packedNormalAndPaletteId = 0u;
+    payload.flags = 0u;
 }

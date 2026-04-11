@@ -37,6 +37,7 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
         private int _modelResidencyId = InvalidResidencyId;
         private int _paletteResidencyId = InvalidResidencyId;
         private int _rtasHandle = InvalidHandle;
+        private int _opaqueRtasHandle = InvalidHandle;
         private int _resolvedBootstrapVersion = InvalidBootstrapVersion;
         private VoxelFilter _subscribedFilter;
         private VoxelRuntimeBootstrap _boundBootstrap;
@@ -97,6 +98,10 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             }
 
             runtime.RayTracingScene.MarkGeometryDirty(_rtasHandle);
+            if (_opaqueRtasHandle != InvalidHandle)
+            {
+                runtime.OpaqueRayTracingScene.MarkGeometryDirty(_opaqueRtasHandle);
+            }
             VoxelRuntimeUpdateUtility.RequestEditorUpdate();
         }
 
@@ -137,6 +142,10 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             }
 
             runtime.RayTracingScene.UpdateTransform(_rtasHandle, transform.localToWorldMatrix);
+            if (_opaqueRtasHandle != InvalidHandle)
+            {
+                runtime.OpaqueRayTracingScene.UpdateTransform(_opaqueRtasHandle, transform.localToWorldMatrix);
+            }
             transform.hasChanged = false;
             VoxelRuntimeUpdateUtility.RequestEditorUpdate();
         }
@@ -257,6 +266,10 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
 
                 instanceConfig = BuildInstanceConfig(modelDescriptor);
                 _rtasHandle = runtime.RayTracingScene.AddInstance(in instanceConfig, transform.localToWorldMatrix);
+                if (_opaqueMaterial)
+                {
+                    _opaqueRtasHandle = runtime.OpaqueRayTracingScene.AddInstance(in instanceConfig, transform.localToWorldMatrix);
+                }
                 _lastRegistrationFailureDiagnostics = null;
                 _boundBootstrap = bootstrap;
                 _resolvedBootstrapVersion = bootstrap.Version;
@@ -265,6 +278,16 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             catch (Exception exception)
             {
                 LogRegistrationFailure(runtime, bootstrap, hasModelDescriptor, modelDescriptor, instanceConfig, exception);
+
+                if (_opaqueRtasHandle != InvalidHandle)
+                {
+                    runtime.OpaqueRayTracingScene.RemoveInstance(_opaqueRtasHandle);
+                }
+
+                if (_rtasHandle != InvalidHandle)
+                {
+                    runtime.RayTracingScene.RemoveInstance(_rtasHandle);
+                }
 
                 if (retainedPaletteId != InvalidResidencyId)
                 {
@@ -305,6 +328,11 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             if (IsRegistered)
             {
                 runtime.RayTracingScene.RemoveInstance(_rtasHandle);
+            }
+
+            if (_opaqueRtasHandle != InvalidHandle)
+            {
+                runtime.OpaqueRayTracingScene.RemoveInstance(_opaqueRtasHandle);
             }
 
             if (_paletteResidencyId != InvalidResidencyId)
@@ -369,7 +397,10 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
                 aabbOffset = 0,
                 material = _material,
                 materialProperties = _scenePropertyBlock,
-                opaqueMaterial = _opaqueMaterial,
+                // The procedural intersection shader decides whether to report a hit,
+                // so registering the RTAS instance as opaque preserves traversal
+                // optimizations without changing the shader-managed transparency path.
+                opaqueMaterial = true,
                 dynamicGeometry = _dynamicGeometry,
                 accelerationStructureBuildFlagsOverride = _overrideBuildFlags,
                 accelerationStructureBuildFlags = _buildFlags,
@@ -399,6 +430,10 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
             }
 
             runtime.RayTracingScene.UpdateMaterialPropertyBlock(_rtasHandle, _scenePropertyBlock);
+            if (_opaqueRtasHandle != InvalidHandle)
+            {
+                runtime.OpaqueRayTracingScene.UpdateMaterialPropertyBlock(_opaqueRtasHandle, _scenePropertyBlock);
+            }
         }
 
         private void RefreshPaletteResidency(VoxelRuntimeServices runtime)
@@ -439,6 +474,7 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
         private void ForgetRuntimeBinding()
         {
             _rtasHandle = InvalidHandle;
+            _opaqueRtasHandle = InvalidHandle;
             _modelResidencyId = InvalidResidencyId;
             _paletteResidencyId = InvalidResidencyId;
             _chunkAabbBuffer = null;
@@ -471,7 +507,8 @@ namespace VoxelRT.Runtime.Rendering.VoxelRenderer
                 $"OverrideBuildFlags={_overrideBuildFlags}, BuildFlags={_buildFlags}");
             builder.AppendLine(
                 $"Residency: ModelId={_modelResidencyId}, PaletteId={_paletteResidencyId}, " +
-                $"ScenePropertyBlockReady={_scenePropertyBlock != null}, ChunkAabbBufferReady={_chunkAabbBuffer != null}");
+                $"ScenePropertyBlockReady={_scenePropertyBlock != null}, ChunkAabbBufferReady={_chunkAabbBuffer != null}, " +
+                $"RtasHandle={_rtasHandle}, OpaqueRtasHandle={_opaqueRtasHandle}");
 
             if (_material != null && _material.shader != null)
             {

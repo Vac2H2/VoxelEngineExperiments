@@ -11,6 +11,7 @@
 
 static const uint kVoxelChunkDimension = 8u;
 static const uint kVoxelChunkOccupancyByteCount = 64u;
+static const uint kRayPayloadFlagTransparentHit = 1u;
 static const float kProceduralRayTMin = 1e-5;
 static const float kHugeDistance = 1e30;
 
@@ -40,7 +41,13 @@ struct RayPayload
     uint hit;
     float hitT;
     uint packedNormalAndPaletteId;
+    uint flags;
 };
+
+bool ShouldKeepScreenDoorHitForPixel(uint2 pixel)
+{
+    return ((pixel.x ^ pixel.y) & 1u) == 0u;
+}
 
 #if VOXEL_OCCUPANCY_INCLUDE_HIT_SHADERS
 struct VoxelHit
@@ -302,26 +309,17 @@ bool IsOpaqueMaterial()
 
 bool ShouldKeepScreenDoorHit()
 {
-    uint2 pixel = DispatchRaysIndex().xy;
-    return ((pixel.x ^ pixel.y) & 1u) == 0u;
+    return ShouldKeepScreenDoorHitForPixel(DispatchRaysIndex().xy);
 }
 
 bool ShouldKeepFirstVoxelHit()
 {
-#if RTAS_OCCUPANCY_SEPARATE_TRANSPARENT
-    return IsOpaqueMaterial() || ShouldKeepScreenDoorHit();
-#else
     return true;
-#endif
 }
 
 bool ShouldTerminateAfterFirstNonEmptyVoxel()
 {
-#if RTAS_OCCUPANCY_SEPARATE_TRANSPARENT
     return true;
-#else
-    return false;
-#endif
 }
 
 uint ResolveChunkGlobalIndex(uint primitiveIndex, out bool isValid)
@@ -460,6 +458,12 @@ bool TryTraceProceduralIntersection(
         return false;
     }
 
+    float traceTMin = max(tEnter, RayTMin());
+    if (traceTMin >= tExit)
+    {
+        return false;
+    }
+
     float3 chunkExtent = max(chunkAabb.boundsMax - chunkAabb.boundsMin, float3(1e-6, 1e-6, 1e-6));
     float3 voxelScale = float3(kVoxelChunkDimension, kVoxelChunkDimension, kVoxelChunkDimension) / chunkExtent;
     float3 rayOriginVS = (rayOriginOS - chunkAabb.boundsMin) * voxelScale;
@@ -471,7 +475,7 @@ bool TryTraceProceduralIntersection(
         chunkGlobalIndex,
         rayOriginVS,
         rayDirectionVS,
-        tEnter,
+        traceTMin,
         tExit,
         entryAxis,
         entryStepSign,
@@ -494,6 +498,7 @@ void ExecuteProceduralClosestHit(
     payload.hit = 1u;
     payload.hitT = RayTCurrent();
     payload.packedNormalAndPaletteId = PackNormalAndPaletteId(attributes.packedNormal, paletteId);
+    payload.flags = IsOpaqueMaterial() ? 0u : kRayPayloadFlagTransparentHit;
 }
 #endif
 
