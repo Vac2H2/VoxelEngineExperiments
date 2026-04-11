@@ -13,6 +13,7 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
         [SerializeField] private string _targetModelPath;
         [SerializeField] private float _voxelSize = 0.1f;
         [SerializeField] private int _solidVoxelValue = 1;
+        [SerializeField] private VoxelMemoryLayout _newModelMemoryLayout = VoxelMemoryLayout.Linear;
 
         [MenuItem("VoxelRT/Tools/Mesh To Voxel Model")]
         public static void Open()
@@ -35,6 +36,24 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                     ? AssetDatabase.GetAssetPath(_targetModel)
                     : null;
             }
+
+            VoxelMemoryLayout resolvedMemoryLayout = ResolveRequestedMemoryLayout();
+            using (new EditorGUI.DisabledScope(_targetModel != null))
+            {
+                VoxelMemoryLayout selectedLayout = (VoxelMemoryLayout)EditorGUILayout.EnumPopup("Memory Layout", resolvedMemoryLayout);
+                if (_targetModel == null)
+                {
+                    _newModelMemoryLayout = selectedLayout;
+                }
+            }
+
+            if (_targetModel != null)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Target model layout is fixed to {_targetModel.MemoryLayout}. Create a new asset to switch between Linear and Octant layouts.",
+                    MessageType.Info);
+            }
+
             _voxelSize = EditorGUILayout.FloatField("Voxel Size", _voxelSize);
             _solidVoxelValue = EditorGUILayout.IntSlider("Solid Voxel Value", _solidVoxelValue, 1, 255);
 
@@ -106,7 +125,8 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                 MeshVoxelizerGpu.AppendTraceLine($"Create settings begin | t={stopwatch.ElapsedMilliseconds} ms");
                 MeshVoxelizationSettings settings = new MeshVoxelizationSettings(
                     _voxelSize,
-                    checked((byte)_solidVoxelValue));
+                    checked((byte)_solidVoxelValue),
+                    ResolveRequestedMemoryLayout());
                 MeshVoxelizerGpu.AppendTraceLine($"Create settings end | t={stopwatch.ElapsedMilliseconds} ms");
 
                 MeshVoxelizerGpu.AppendTraceLine($"Voxelize begin | t={stopwatch.ElapsedMilliseconds} ms");
@@ -179,6 +199,13 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                 "asset",
                 "Choose where to save the generated VoxelModel.",
                 defaultDirectory);
+        }
+
+        private VoxelMemoryLayout ResolveRequestedMemoryLayout()
+        {
+            return _targetModel != null
+                ? _targetModel.MemoryLayout
+                : _newModelMemoryLayout;
         }
     }
 }

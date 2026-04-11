@@ -37,6 +37,7 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             MeshVoxelizerGpu.AppendTraceLine($"WriteAsset overwrite data begin | chunks={result.ChunkCount}");
             MeshVoxelizerGpu.EmitDebugLog($"MeshVoxelizer write | t={stopwatch.ElapsedMilliseconds} ms | OverwriteData begin | chunks={result.ChunkCount}");
             asset.OverwriteData(
+                result.MemoryLayout,
                 result.ChunkCount,
                 result.OccupancyBytes,
                 result.VoxelBytes,

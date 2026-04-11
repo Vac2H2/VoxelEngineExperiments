@@ -1,12 +1,13 @@
 using System;
 using UnityEngine;
+using VoxelRT.Runtime.Data;
 using VoxelRT.Runtime.Rendering.ModelProceduralAabb;
 
 namespace VoxelRT.Editor.Tools.MeshVoxelizer
 {
     internal readonly struct MeshVoxelizationSettings
     {
-        public MeshVoxelizationSettings(float voxelSize, byte solidVoxelValue)
+        public MeshVoxelizationSettings(float voxelSize, byte solidVoxelValue, VoxelMemoryLayout memoryLayout)
         {
             if (voxelSize <= 0f)
             {
@@ -18,28 +19,45 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                 throw new ArgumentOutOfRangeException(nameof(solidVoxelValue), "Solid voxel value must be non-zero.");
             }
 
+            if (!Enum.IsDefined(typeof(VoxelMemoryLayout), memoryLayout))
+            {
+                throw new ArgumentOutOfRangeException(nameof(memoryLayout), memoryLayout, "Unsupported voxel memory layout.");
+            }
+
             VoxelSize = voxelSize;
             SolidVoxelValue = solidVoxelValue;
+            MemoryLayout = memoryLayout;
         }
 
         public float VoxelSize { get; }
 
         public byte SolidVoxelValue { get; }
+
+        public VoxelMemoryLayout MemoryLayout { get; }
     }
 
     internal sealed class MeshVoxelizationResult
     {
         public MeshVoxelizationResult(
+            VoxelMemoryLayout memoryLayout,
             byte[] occupancyBytes,
             byte[] voxelBytes,
             ModelChunkAabb[] chunkAabbs)
         {
+            if (!Enum.IsDefined(typeof(VoxelMemoryLayout), memoryLayout))
+            {
+                throw new ArgumentOutOfRangeException(nameof(memoryLayout), memoryLayout, "Unsupported voxel memory layout.");
+            }
+
+            MemoryLayout = memoryLayout;
             OccupancyBytes = occupancyBytes ?? throw new ArgumentNullException(nameof(occupancyBytes));
             VoxelBytes = voxelBytes ?? throw new ArgumentNullException(nameof(voxelBytes));
             ChunkAabbs = chunkAabbs ?? throw new ArgumentNullException(nameof(chunkAabbs));
         }
 
         public int ChunkCount => ChunkAabbs.Length;
+
+        public VoxelMemoryLayout MemoryLayout { get; }
 
         public byte[] OccupancyBytes { get; }
 
@@ -67,9 +85,9 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
         public static Vector3Int CalculateChunkDimensions(Vector3Int gridDimensions)
         {
             return new Vector3Int(
-                DivideRoundUp(gridDimensions.x, VoxelRT.Runtime.Data.VoxelChunkLayout.Dimension),
-                DivideRoundUp(gridDimensions.y, VoxelRT.Runtime.Data.VoxelChunkLayout.Dimension),
-                DivideRoundUp(gridDimensions.z, VoxelRT.Runtime.Data.VoxelChunkLayout.Dimension));
+                DivideRoundUp(gridDimensions.x, VoxelChunkLayout.Dimension),
+                DivideRoundUp(gridDimensions.y, VoxelChunkLayout.Dimension),
+                DivideRoundUp(gridDimensions.z, VoxelChunkLayout.Dimension));
         }
 
         public static int DivideRoundUp(int value, int divisor)

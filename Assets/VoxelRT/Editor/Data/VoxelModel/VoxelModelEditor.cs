@@ -31,6 +31,7 @@ namespace VoxelRT.Editor.Data.VoxelModel
             MonoScript script = MonoScript.FromScriptableObject(voxelModel);
             EditorGUILayout.ObjectField("Script", script, typeof(MonoScript), false);
             EditorGUILayout.IntField("Chunk Count", checked((int)voxelModel.ChunkCount));
+            EditorGUILayout.EnumPopup("Memory Layout", voxelModel.MemoryLayout);
             EditorGUILayout.IntField("Occupancy Bytes", voxelModel.OccupancyByteCount);
             EditorGUILayout.IntField("Voxel Bytes", voxelModel.VoxelByteCount);
             EditorGUILayout.IntField("Chunk AABBs", voxelModel.ChunkAabbCount);

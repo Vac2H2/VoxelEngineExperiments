@@ -75,7 +75,7 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             LogStage(
                 "Start",
                 totalStopwatch,
-                $"mesh={sourceMesh.name}, voxelSize={settings.VoxelSize}, outputGrid={FormatVector(outputGridDimensions)}, outputVoxels={outputVoxelCount:N0}, surfaceGrid={FormatVector(surfaceGridDimensions)}, surfaceVoxels={surfaceVoxelCount:N0}");
+                $"mesh={sourceMesh.name}, voxelSize={settings.VoxelSize}, layout={settings.MemoryLayout}, outputGrid={FormatVector(outputGridDimensions)}, outputVoxels={outputVoxelCount:N0}, surfaceGrid={FormatVector(surfaceGridDimensions)}, surfaceVoxels={surfaceVoxelCount:N0}");
             LogStage("BuildTriangleData begin", totalStopwatch);
             TriangleData[] triangleData = BuildTriangleData(sourceMesh, bounds.min, surfaceGridOffset);
             long buildTrianglesMilliseconds = stageStopwatch.ElapsedMilliseconds;
@@ -195,7 +195,8 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                     outputGridDimensions,
                     new Vector3Int(FloodPadding, FloodPadding, FloodPadding),
                     settings.VoxelSize,
-                    settings.SolidVoxelValue);
+                    settings.SolidVoxelValue,
+                    settings.MemoryLayout);
                 LogStage("Compaction end", totalStopwatch, $"chunks={result.ChunkCount:N0}");
                 compactionMilliseconds = stageStopwatch.ElapsedMilliseconds - buildTrianglesMilliseconds - uploadMilliseconds - clearDispatchMilliseconds - surfaceDispatchMilliseconds - readbackMilliseconds - floodFillMilliseconds;
 
@@ -421,7 +422,8 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             Vector3Int outputGridDimensions,
             Vector3Int sourceGridOffset,
             float voxelSize,
-            byte solidVoxelValue)
+            byte solidVoxelValue,
+            VoxelMemoryLayout memoryLayout)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
             LogStage(
@@ -489,9 +491,9 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                                 int localX = outputX - (chunkCoord.x * VoxelChunkLayout.Dimension);
                                 int localY = outputY - (chunkCoord.y * VoxelChunkLayout.Dimension);
                                 int localZ = outputZ - (chunkCoord.z * VoxelChunkLayout.Dimension);
-                                int voxelIndex = VoxelChunkLayout.FlattenVoxelDataIndex(localX, localY, localZ);
-                                int occupancyByteIndex = VoxelChunkLayout.ComputeOccupancyByteIndex(localX, localY, localZ);
-                                byte occupancyMask = VoxelChunkLayout.ComputeOccupancyBitMask(localX);
+                                int voxelIndex = VoxelChunkLayout.FlattenVoxelDataIndex(memoryLayout, localX, localY, localZ);
+                                int occupancyByteIndex = VoxelChunkLayout.ComputeOccupancyByteIndex(memoryLayout, localX, localY, localZ);
+                                byte occupancyMask = VoxelChunkLayout.ComputeOccupancyBitMask(memoryLayout, localX, localY, localZ);
 
                                 chunkBuilder.OccupancyBytes[occupancyByteIndex] |= occupancyMask;
                                 chunkBuilder.VoxelBytes[voxelIndex] = solidVoxelValue;
@@ -543,7 +545,7 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             }
             LogStage("CompactExteriorVolume finalize chunks end", null, $"t={stopwatch.ElapsedMilliseconds} ms");
 
-            return new MeshVoxelizationResult(occupancyBytes, voxelBytes, chunkAabbs);
+            return new MeshVoxelizationResult(memoryLayout, occupancyBytes, voxelBytes, chunkAabbs);
         }
 
         private static int EncodeVoxelIndex(int x, int y, int z, Vector3Int gridDimensions)

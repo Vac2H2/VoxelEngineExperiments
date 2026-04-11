@@ -12,6 +12,7 @@ namespace VoxelRT.Runtime.Data
     {
         [Min(1)]
         [SerializeField] private int _chunkCount = 1;
+        [SerializeField, HideInInspector] private VoxelMemoryLayout _memoryLayout = VoxelMemoryLayout.Linear;
         [SerializeField] private byte[] _occupancyBytes = Array.Empty<byte>();
         [SerializeField] private byte[] _voxelBytes = Array.Empty<byte>();
         [SerializeField] private ModelChunkAabb[] _chunkAabbs = Array.Empty<ModelChunkAabb>();
@@ -23,6 +24,8 @@ namespace VoxelRT.Runtime.Data
         public object ResidencyKey => _residencyKey ?? (_residencyKey = new object());
 
         public uint ChunkCount => checked((uint)_chunkCount);
+
+        public VoxelMemoryLayout MemoryLayout => _memoryLayout;
 
         public int OccupancyByteCount => _occupancyBytes?.Length ?? 0;
 
@@ -45,6 +48,7 @@ namespace VoxelRT.Runtime.Data
         }
 
         public void OverwriteData(
+            VoxelMemoryLayout memoryLayout,
             int chunkCount,
             byte[] occupancyBytes,
             byte[] voxelBytes,
@@ -55,7 +59,16 @@ namespace VoxelRT.Runtime.Data
                 throw new ArgumentOutOfRangeException(nameof(chunkCount), "Chunk count must be greater than zero.");
             }
 
+            ValidateMemoryLayout(memoryLayout);
+
+            if (HasSerializedChunkData() && _memoryLayout != memoryLayout)
+            {
+                throw new InvalidOperationException(
+                    $"VoxelModel memory layout is fixed to {_memoryLayout} and cannot be changed to {memoryLayout}.");
+            }
+
             _chunkCount = chunkCount;
+            _memoryLayout = memoryLayout;
             _occupancyBytes = occupancyBytes ?? throw new ArgumentNullException(nameof(occupancyBytes));
             _voxelBytes = voxelBytes ?? throw new ArgumentNullException(nameof(voxelBytes));
             _chunkAabbs = chunkAabbs ?? throw new ArgumentNullException(nameof(chunkAabbs));
@@ -70,6 +83,8 @@ namespace VoxelRT.Runtime.Data
 
         public void ValidateData()
         {
+            ValidateMemoryLayout(_memoryLayout);
+
             if (_chunkCount <= 0)
             {
                 throw new InvalidOperationException("VoxelModel chunk count must be greater than zero.");
@@ -112,10 +127,30 @@ namespace VoxelRT.Runtime.Data
                 _chunkCount = 1;
             }
 
+            if (!Enum.IsDefined(typeof(VoxelMemoryLayout), _memoryLayout))
+            {
+                _memoryLayout = VoxelMemoryLayout.Linear;
+            }
+
             _occupancyBytes ??= Array.Empty<byte>();
             _voxelBytes ??= Array.Empty<byte>();
             _chunkAabbs ??= Array.Empty<ModelChunkAabb>();
             InvalidateResidency();
+        }
+
+        private bool HasSerializedChunkData()
+        {
+            return (_occupancyBytes != null && _occupancyBytes.Length > 0)
+                || (_voxelBytes != null && _voxelBytes.Length > 0)
+                || (_chunkAabbs != null && _chunkAabbs.Length > 0);
+        }
+
+        private static void ValidateMemoryLayout(VoxelMemoryLayout memoryLayout)
+        {
+            if (!Enum.IsDefined(typeof(VoxelMemoryLayout), memoryLayout))
+            {
+                throw new ArgumentOutOfRangeException(nameof(memoryLayout), memoryLayout, "Unsupported voxel memory layout.");
+            }
         }
     }
 }

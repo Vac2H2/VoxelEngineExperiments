@@ -33,6 +33,10 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             _voxelSize = EditorGUILayout.FloatField("Voxel Size", _voxelSize);
             _solidVoxelValue = EditorGUILayout.IntSlider("Solid Voxel Value", _solidVoxelValue, 1, 255);
             _targetModel = (VoxelModel)EditorGUILayout.ObjectField("Target Model", _targetModel, typeof(VoxelModel), false);
+            using (new EditorGUI.DisabledScope(true))
+            {
+                EditorGUILayout.EnumPopup("Memory Layout", ResolveRequestedMemoryLayout());
+            }
 
             EditorGUILayout.Space();
 
@@ -88,7 +92,11 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
 
             try
             {
-                MeshVoxelizationResult result = GenerateSphereResult(_radius, _voxelSize, checked((byte)_solidVoxelValue));
+                MeshVoxelizationResult result = GenerateSphereResult(
+                    _radius,
+                    _voxelSize,
+                    checked((byte)_solidVoxelValue),
+                    ResolveRequestedMemoryLayout());
                 VoxelModel asset = VoxelModelAssetWriter.WriteAsset(_targetModel, assetPath, result);
                 _targetModel = asset;
                 Selection.activeObject = asset;
@@ -108,7 +116,11 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             }
         }
 
-        private static MeshVoxelizationResult GenerateSphereResult(float radius, float voxelSize, byte solidVoxelValue)
+        private static MeshVoxelizationResult GenerateSphereResult(
+            float radius,
+            float voxelSize,
+            byte solidVoxelValue,
+            VoxelMemoryLayout memoryLayout)
         {
             if (radius <= 0.0f)
             {
@@ -123,6 +135,11 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             if (solidVoxelValue == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(solidVoxelValue), "Solid voxel value must be non-zero.");
+            }
+
+            if (!Enum.IsDefined(typeof(VoxelMemoryLayout), memoryLayout))
+            {
+                throw new ArgumentOutOfRangeException(nameof(memoryLayout), memoryLayout, "Unsupported voxel memory layout.");
             }
 
             float radiusSquared = radius * radius;
@@ -177,7 +194,7 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                             Vector3 chunkOrigin = gridOrigin + Vector3.Scale(
                                 (Vector3)chunkCoord,
                                 Vector3.one * (VoxelChunkLayout.Dimension * voxelSize));
-                            occupiedChunks.Add(new ChunkBuilder(chunkOrigin, voxelSize));
+                            occupiedChunks.Add(new ChunkBuilder(chunkOrigin, voxelSize, memoryLayout));
                         }
 
                         occupiedChunks[chunkIndex].SetVoxel(
@@ -194,10 +211,10 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                 throw new InvalidOperationException("Sphere voxelization produced no occupied chunks.");
             }
 
-            return BuildResult(occupiedChunks);
+            return BuildResult(memoryLayout, occupiedChunks);
         }
 
-        private static MeshVoxelizationResult BuildResult(List<ChunkBuilder> occupiedChunks)
+        private static MeshVoxelizationResult BuildResult(VoxelMemoryLayout memoryLayout, List<ChunkBuilder> occupiedChunks)
         {
             byte[] occupancyBytes = new byte[occupiedChunks.Count * VoxelChunkLayout.OccupancyByteCount];
             byte[] voxelBytes = new byte[occupiedChunks.Count * VoxelChunkLayout.VoxelDataByteCount];
@@ -221,7 +238,7 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
                 chunkAabbs[i] = occupiedChunks[i].BuildAabb();
             }
 
-            return new MeshVoxelizationResult(occupancyBytes, voxelBytes, chunkAabbs);
+            return new MeshVoxelizationResult(memoryLayout, occupancyBytes, voxelBytes, chunkAabbs);
         }
 
         private string ResolveTargetPath()
@@ -248,6 +265,13 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
         private static Vector3 CalculateGridOrigin(Vector3Int gridDimensions, float voxelSize)
         {
             return Vector3.zero;
+        }
+
+        private VoxelMemoryLayout ResolveRequestedMemoryLayout()
+        {
+            return _targetModel != null
+                ? _targetModel.MemoryLayout
+                : VoxelMemoryLayout.Linear;
         }
 
         private static bool ShouldUpdateVoxelProgress(long processedVoxelCount, long totalVoxelCount)
@@ -292,20 +316,22 @@ namespace VoxelRT.Editor.Tools.MeshVoxelizer
             private readonly byte[] _voxelBytes = new byte[VoxelChunkLayout.VoxelDataByteCount];
             private readonly Vector3 _chunkOrigin;
             private readonly float _voxelSize;
+            private readonly VoxelMemoryLayout _memoryLayout;
 
-            public ChunkBuilder(Vector3 chunkOrigin, float voxelSize)
+            public ChunkBuilder(Vector3 chunkOrigin, float voxelSize, VoxelMemoryLayout memoryLayout)
             {
                 _chunkOrigin = chunkOrigin;
                 _voxelSize = voxelSize;
+                _memoryLayout = memoryLayout;
             }
 
             public bool HasOccupancy { get; private set; }
 
             public void SetVoxel(int x, int y, int z, byte value)
             {
-                int voxelIndex = VoxelChunkLayout.FlattenVoxelDataIndex(x, y, z);
-                int occupancyByteIndex = VoxelChunkLayout.ComputeOccupancyByteIndex(x, y, z);
-                byte occupancyMask = VoxelChunkLayout.ComputeOccupancyBitMask(x);
+                int voxelIndex = VoxelChunkLayout.FlattenVoxelDataIndex(_memoryLayout, x, y, z);
+                int occupancyByteIndex = VoxelChunkLayout.ComputeOccupancyByteIndex(_memoryLayout, x, y, z);
+                byte occupancyMask = VoxelChunkLayout.ComputeOccupancyBitMask(_memoryLayout, x, y, z);
 
                 _occupancyBytes[occupancyByteIndex] |= occupancyMask;
                 _voxelBytes[voxelIndex] = value;

@@ -1,7 +1,9 @@
 {
   "name": "VoxelRT.Runtime",
   "rootNamespace": "VoxelRT",
-  "references": [],
+  "references": [
+    "Unity.InputSystem"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

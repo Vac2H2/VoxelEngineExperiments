@@ -179,13 +179,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 15439780}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.6818707, z: 0, w: 0.7314728}
-  m_LocalPosition: {x: -9.1, y: -3.7, z: -0.67}
-  m_LocalScale: {x: 17.21, y: 17.21, z: 17.21}
-  m_ConstrainProportionsScale: 1
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -6.82, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &144486984
 GameObject:
   m_ObjectHideFlags: 0
@@ -329,6 +329,60 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &906164088
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 906164090}
+  - component: {fileID: 906164089}
+  m_Layer: 0
+  m_Name: Controller
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &906164089
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 906164088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d09b7d2b3d0449448be18ad4055c1f14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Tools.VoxelLayoutToggleController
+  _linearRoot: {fileID: 15439780}
+  _octantRoot: {fileID: 1539583372}
+  _startWithLinear: 1
+  _resolutionToggleKey: 32
+  _defaultResolution: {x: 1920, y: 1080}
+  _highResolution: {x: 3840, y: 2160}
+  _fullscreenMode: 3
+  _referenceHeight: 1080
+  _screenMargin: {x: 16, y: 16}
+  _fontSize: 64
+--- !u!4 &906164090
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 906164088}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -10.54987, y: -0, z: 0.17038}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -414,8 +468,75 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
+  m_LocalRotation: {x: 0.009619771, y: -0.7171651, z: 0.009910044, w: 0.69676644}
+  m_LocalPosition: {x: 0.9482174, y: 0.31782886, z: 0.5022192}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1539583372
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1539583375}
+  - component: {fileID: 1539583374}
+  - component: {fileID: 1539583373}
+  m_Layer: 0
+  m_Name: Dragon Octant
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1539583373
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1539583372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 860a88caad534e36a31a2079421d7b19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelRenderer
+  _voxelFilter: {fileID: 1539583374}
+  _bootstrap: {fileID: 144486985}
+  _material: {fileID: 2100000, guid: 5dba7d689fd943f5ad4e29a9d4e2d882, type: 2}
+  _mask: 255
+  _opaqueMaterial: 1
+  _dynamicGeometry: 0
+  _overrideBuildFlags: 0
+  _buildFlags: 1
+--- !u!114 &1539583374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1539583372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d09b92a0a1e49a0bcaaea474c5e4e39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelFilter
+  _model: {fileID: 11400000, guid: a3c32dcdd13e78f499e1513f513f80c8, type: 2}
+  _palette: {fileID: 11400000, guid: 173891885e045ab44b5da964d5031a28, type: 2}
+--- !u!4 &1539583375
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1539583372}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -429,3 +550,5 @@ SceneRoots:
   - {fileID: 705507995}
   - {fileID: 144486986}
   - {fileID: 15439783}
+  - {fileID: 1539583375}
+  - {fileID: 906164090}
