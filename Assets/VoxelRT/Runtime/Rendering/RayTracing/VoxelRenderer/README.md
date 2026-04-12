@@ -14,6 +14,7 @@ It is responsible for:
 - tracking the returned RTAS `handle`
 - updating transform and property-block changes over the instance lifetime
 - doing the same registration path in both edit mode and play mode
+- assigning the internal RTAS instance mask used for opaque/transparent retraces
 
 It is not responsible for:
 
@@ -49,6 +50,18 @@ External systems can write user-facing material properties through this API.
 - `_VoxelPaletteResidencyId`
 
 before pushing the final block to `RayTracingScene`.
+
+## Internal Instance Mask
+
+`VoxelRenderer` no longer exposes a user-facing RTAS mask.
+
+The RTAS instance mask is now internal:
+
+- opaque instance = `1`
+- transparent instance = `2`
+
+Primary rays trace against both bits, and transparent pass-through retraces use
+the opaque bit only.
 
 ## Shared Runtime Bootstrap
 

@@ -6,14 +6,14 @@
 #include "VoxelOccupancyProceduralGbufferShared.hlsl"
 
 RaytracingAccelerationStructure _RaytracingAccelerationStructure;
-RaytracingAccelerationStructure _OpaqueRaytracingAccelerationStructure;
 
 float4x4 _PixelCoordToViewDirWS;
 float3 _CameraPositionWS;
 float3 _CameraForwardWS;
 float _RayTMin;
 float _RayTMax;
-uint _LayerMask;
+uint _AllInstanceMask;
+uint _OpaqueInstanceMask;
 
 RWTexture2D<float4> _VoxelRtGBuffer0;
 RWTexture2D<float4> _VoxelRtGBuffer1;
@@ -88,7 +88,7 @@ void RayGenMain()
     ray.TMin = max(nearPlaneT, 1e-5);
     ray.TMax = max(_RayTMax, ray.TMin);
 
-    RayPayload payload = TraceScene(_RaytracingAccelerationStructure, ray, _LayerMask);
+    RayPayload payload = TraceScene(_RaytracingAccelerationStructure, ray, _AllInstanceMask);
     RayPayload visiblePayload = payload;
     if (HasHit(payload) && IsTransparentHit(payload) && !KeepsScreenDoorHit(payload))
     {
@@ -97,9 +97,9 @@ void RayGenMain()
             ray.TMax,
             max(payload.hitT + kSecondaryRayTOffset, ray.TMin));
         visiblePayload = TraceScene(
-            _OpaqueRaytracingAccelerationStructure,
+            _RaytracingAccelerationStructure,
             opaqueRay,
-            _LayerMask);
+            _OpaqueInstanceMask);
     }
 
     float4 gbuffer0 = 0.0;

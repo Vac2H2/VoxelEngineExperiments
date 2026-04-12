@@ -6,14 +6,14 @@
 #include "VoxelOccupancyProceduralShared.hlsl"
 
 RaytracingAccelerationStructure _RaytracingAccelerationStructure;
-RaytracingAccelerationStructure _OpaqueRaytracingAccelerationStructure;
 
 float4x4 _PixelCoordToViewDirWS;
 float3 _CameraPositionWS;
 float3 _CameraForwardWS;
 float _RayTMin;
 float _RayTMax;
-uint _LayerMask;
+uint _AllInstanceMask;
+uint _OpaqueInstanceMask;
 
 RWTexture2D<float4> _Output;
 
@@ -65,7 +65,7 @@ void RayGenMain()
     ray.TMin = max(nearPlaneT, 1e-5);
     ray.TMax = max(_RayTMax, ray.TMin);
 
-    RayPayload payload = TraceScene(_RaytracingAccelerationStructure, ray, _LayerMask);
+    RayPayload payload = TraceScene(_RaytracingAccelerationStructure, ray, _AllInstanceMask);
 
     float3 color = 0.0;
     if (HasHit(payload))
@@ -77,9 +77,9 @@ void RayGenMain()
                 ray.TMax,
                 max(payload.hitT + kSecondaryRayTOffset, ray.TMin));
             RayPayload opaquePayload = TraceScene(
-                _OpaqueRaytracingAccelerationStructure,
+                _RaytracingAccelerationStructure,
                 opaqueRay,
-                _LayerMask);
+                _OpaqueInstanceMask);
             if (HasHit(opaquePayload))
             {
                 color = ShadePayload(opaquePayload);

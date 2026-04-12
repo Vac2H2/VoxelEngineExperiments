@@ -14,21 +14,22 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
         private const string DefaultShaderPassName = "VoxelOccupancyDXR";
         private const string RayGenerationShaderName = "RayGenMain";
         private const float MinimumRayT = 0.001f;
+        private const int AllInstanceMask = 0x3;
+        private const int OpaqueInstanceMask = 0x1;
 
         private static readonly int RayTracingAccelerationStructureId = Shader.PropertyToID("_RaytracingAccelerationStructure");
-        private static readonly int OpaqueRayTracingAccelerationStructureId = Shader.PropertyToID("_OpaqueRaytracingAccelerationStructure");
         private static readonly int PixelCoordToViewDirWsId = Shader.PropertyToID("_PixelCoordToViewDirWS");
         private static readonly int CameraPositionWsId = Shader.PropertyToID("_CameraPositionWS");
         private static readonly int CameraForwardWsId = Shader.PropertyToID("_CameraForwardWS");
         private static readonly int RayTMinId = Shader.PropertyToID("_RayTMin");
         private static readonly int RayTMaxId = Shader.PropertyToID("_RayTMax");
-        private static readonly int LayerMaskId = Shader.PropertyToID("_LayerMask");
+        private static readonly int AllInstanceMaskId = Shader.PropertyToID("_AllInstanceMask");
+        private static readonly int OpaqueInstanceMaskId = Shader.PropertyToID("_OpaqueInstanceMask");
         private static readonly int OutputTextureId = Shader.PropertyToID("_Output");
         private static readonly int TemporaryOutputTextureId = Shader.PropertyToID("_VoxelRayTracingFullscreenOutput");
 
         [SerializeField] private RayTracingShader _rayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
-        [SerializeField, Range(0, 255)] private int _instanceInclusionMask = 0xFF;
         [SerializeField] private GraphicsFormat _outputFormat = GraphicsFormat.R16G16B16A16_SFloat;
 
         protected override bool OnRender(in VoxelRenderPipelineCameraContext context)
@@ -95,10 +96,6 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 _rayTracingShader,
                 RayTracingAccelerationStructureId,
                 runtime.RayTracingScene.AccelerationStructure);
-            commandBuffer.SetRayTracingAccelerationStructure(
-                _rayTracingShader,
-                OpaqueRayTracingAccelerationStructureId,
-                runtime.OpaqueRayTracingScene.AccelerationStructure);
             commandBuffer.SetRayTracingMatrixParam(
                 _rayTracingShader,
                 PixelCoordToViewDirWsId,
@@ -121,10 +118,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             float rayTMax = Mathf.Max(camera.farClipPlane, rayTMin);
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, RayTMinId, rayTMin);
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, RayTMaxId, rayTMax);
-            commandBuffer.SetRayTracingIntParam(
-                _rayTracingShader,
-                LayerMaskId,
-                Mathf.Clamp(_instanceInclusionMask, 0, 0xFF));
+            commandBuffer.SetRayTracingIntParam(_rayTracingShader, AllInstanceMaskId, AllInstanceMask);
+            commandBuffer.SetRayTracingIntParam(_rayTracingShader, OpaqueInstanceMaskId, OpaqueInstanceMask);
             commandBuffer.SetRayTracingTextureParam(
                 _rayTracingShader,
                 OutputTextureId,

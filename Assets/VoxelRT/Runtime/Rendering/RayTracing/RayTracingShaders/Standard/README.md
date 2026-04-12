@@ -45,7 +45,7 @@ The payload layout is:
 `raygeneration` still owns ray orchestration:
 
 - it reads the payload flags
-- if the first hit is transparent and not marked to keep, it continues tracing against the opaque-only RTAS
+- if the first hit is transparent and not marked to keep, it continues tracing against the same RTAS with the internal opaque-only instance mask
 - otherwise it shades the returned hit directly
 
 This keeps the current fullscreen module output unchanged while moving the

@@ -9,6 +9,9 @@ It extends the `Standard` occupancy traversal path and keeps the same
 screen-door transparency orchestration, but the final `.raytrace` stage writes
 the full voxel GBuffer set.
 
+Transparent pass-through retraces use the same RTAS and switch only the
+instance-inclusion mask from `all voxel instances` to `opaque instances`.
+
 ## Usage Constraint
 
 The `RtGbuffer` render module expects voxel instances to use the material asset:

@@ -152,7 +152,6 @@ MonoBehaviour:
   _voxelFilter: {fileID: 15439782}
   _bootstrap: {fileID: 144486985}
   _material: {fileID: 2100000, guid: 40cb113562914b118cf80904bcca2419, type: 2}
-  _mask: 255
   _opaqueMaterial: 1
   _dynamicGeometry: 0
   _overrideBuildFlags: 0
@@ -503,7 +502,6 @@ MonoBehaviour:
   _voxelFilter: {fileID: 1142443396}
   _bootstrap: {fileID: 144486985}
   _material: {fileID: 2100000, guid: 40cb113562914b118cf80904bcca2419, type: 2}
-  _mask: 255
   _opaqueMaterial: 1
   _dynamicGeometry: 0
   _overrideBuildFlags: 0
@@ -570,7 +568,6 @@ MonoBehaviour:
   _voxelFilter: {fileID: 1539583374}
   _bootstrap: {fileID: 144486985}
   _material: {fileID: 2100000, guid: 5dba7d689fd943f5ad4e29a9d4e2d882, type: 2}
-  _mask: 255
   _opaqueMaterial: 1
   _dynamicGeometry: 0
   _overrideBuildFlags: 0

@@ -38,8 +38,9 @@ namespace VoxelRT.Runtime.Rendering.RenderPipeline
             return new VoxelRenderPipeline(this);
         }
 
-        private void OnValidate()
+        protected override void OnValidate()
         {
+            base.OnValidate();
             _availableModules ??= Array.Empty<VoxelRenderPipelineModule>();
 
             if (_selectedModule == null && _availableModules.Length == 1)

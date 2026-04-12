@@ -16,5 +16,4 @@ MonoBehaviour:
   _submodules: []
   _rayTracingShader: {fileID: 4807578003741378534, guid: f9602a2d7bc844738bd0298f96857dc4, type: 3}
   _shaderPassName: VoxelOccupancyDXR
-  _instanceInclusionMask: 255
   _previewTarget: 0
