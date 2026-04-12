@@ -9,12 +9,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4cb7a0fdad9d40c9a0f110273b52d2e9, type: 3}
-  m_Name: VoxelRayTracingFullscreenModule
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.RenderPipeline.VoxelRayTracingFullscreenModule
+  m_Script: {fileID: 11500000, guid: 70126c503cb74a339904f1d52940dda3, type: 3}
+  m_Name: RtGbufferModule
+  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.RenderModules.RtGbufferModule
   _isEnabled: 1
   _submodules: []
-  _rayTracingShader: {fileID: 4807578003741378534, guid: f8cfc174232a43ada6c0c0b9c4312cbf, type: 3}
+  _rayTracingShader: {fileID: 4807578003741378534, guid: f9602a2d7bc844738bd0298f96857dc4, type: 3}
   _shaderPassName: VoxelOccupancyDXR
   _instanceInclusionMask: 255
-  _outputFormat: 48
+  _previewTarget: 0

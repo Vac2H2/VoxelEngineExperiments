@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using VoxelRT.Runtime.Rendering.RenderModules;
 
 namespace VoxelRT.Runtime.Rendering.RenderPipeline
 {
@@ -14,7 +15,7 @@ namespace VoxelRT.Runtime.Rendering.RenderPipeline
         internal VoxelRenderPipeline(VoxelRenderPipelineAsset asset)
         {
             _asset = asset ?? throw new ArgumentNullException(nameof(asset));
-            _modules = asset.Modules;
+            _modules = asset.RootModules;
             ValidateModuleGraph(_modules);
 
             try

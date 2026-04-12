@@ -11,7 +11,9 @@
 
 static const uint kVoxelChunkDimension = 8u;
 static const uint kVoxelChunkOccupancyByteCount = 64u;
-static const uint kRayPayloadFlagTransparentHit = 1u;
+static const uint kRayPayloadFlagValidHit = 1u << 0;
+static const uint kRayPayloadFlagTransparentHit = 1u << 1;
+static const uint kRayPayloadFlagKeepScreenDoorHit = 1u << 2;
 static const float kProceduralRayTMin = 1e-5;
 static const float kHugeDistance = 1e30;
 
@@ -38,11 +40,25 @@ struct AttributeData
 
 struct RayPayload
 {
-    uint hit;
     float hitT;
     uint packedNormalAndPaletteId;
     uint flags;
 };
+
+bool HasHit(RayPayload payload)
+{
+    return (payload.flags & kRayPayloadFlagValidHit) != 0u;
+}
+
+bool IsTransparentHit(RayPayload payload)
+{
+    return (payload.flags & kRayPayloadFlagTransparentHit) != 0u;
+}
+
+bool KeepsScreenDoorHit(RayPayload payload)
+{
+    return (payload.flags & kRayPayloadFlagKeepScreenDoorHit) != 0u;
+}
 
 bool ShouldKeepScreenDoorHitForPixel(uint2 pixel)
 {
@@ -495,10 +511,21 @@ void ExecuteProceduralClosestHit(
     AttributeData attributes)
 {
     uint paletteId = _VoxelPaletteResidencyId < 0 ? 0u : (uint)_VoxelPaletteResidencyId;
-    payload.hit = 1u;
+    bool isOpaqueMaterial = IsOpaqueMaterial();
+    bool keepScreenDoorHit = isOpaqueMaterial || ShouldKeepScreenDoorHit();
+
     payload.hitT = RayTCurrent();
     payload.packedNormalAndPaletteId = PackNormalAndPaletteId(attributes.packedNormal, paletteId);
-    payload.flags = IsOpaqueMaterial() ? 0u : kRayPayloadFlagTransparentHit;
+    payload.flags = kRayPayloadFlagValidHit;
+    if (!isOpaqueMaterial)
+    {
+        payload.flags |= kRayPayloadFlagTransparentHit;
+    }
+
+    if (keepScreenDoorHit)
+    {
+        payload.flags |= kRayPayloadFlagKeepScreenDoorHit;
+    }
 }
 #endif
 

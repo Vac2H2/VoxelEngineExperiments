@@ -1,5 +1,7 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
+using VoxelRT.Runtime.Rendering.RenderModules;
 
 namespace VoxelRT.Runtime.Rendering.RenderPipeline
 {
@@ -8,15 +10,42 @@ namespace VoxelRT.Runtime.Rendering.RenderPipeline
     {
         private const string RenderPipelineShaderTagValue = "VoxelRenderPipeline";
 
-        [SerializeField] private VoxelRenderPipelineModule[] _modules = Array.Empty<VoxelRenderPipelineModule>();
+        [FormerlySerializedAs("_modules")]
+        [SerializeField] private VoxelRenderPipelineModule[] _availableModules = Array.Empty<VoxelRenderPipelineModule>();
+        [SerializeField] private VoxelRenderPipelineModule _selectedModule;
 
-        internal VoxelRenderPipelineModule[] Modules => _modules ?? Array.Empty<VoxelRenderPipelineModule>();
+        internal VoxelRenderPipelineModule[] RootModules
+        {
+            get
+            {
+                if (_selectedModule != null)
+                {
+                    return new[] { _selectedModule };
+                }
+
+                return _availableModules ?? Array.Empty<VoxelRenderPipelineModule>();
+            }
+        }
+
+        internal VoxelRenderPipelineModule[] AvailableModules => _availableModules ?? Array.Empty<VoxelRenderPipelineModule>();
+
+        internal VoxelRenderPipelineModule SelectedModule => _selectedModule;
 
         public override string renderPipelineShaderTag => RenderPipelineShaderTagValue;
 
         protected override UnityEngine.Rendering.RenderPipeline CreatePipeline()
         {
             return new VoxelRenderPipeline(this);
+        }
+
+        private void OnValidate()
+        {
+            _availableModules ??= Array.Empty<VoxelRenderPipelineModule>();
+
+            if (_selectedModule == null && _availableModules.Length == 1)
+            {
+                _selectedModule = _availableModules[0];
+            }
         }
     }
 }

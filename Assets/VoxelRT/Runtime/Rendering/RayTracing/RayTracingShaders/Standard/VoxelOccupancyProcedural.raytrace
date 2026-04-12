@@ -19,11 +19,6 @@ RWTexture2D<float4> _Output;
 
 static const float kSecondaryRayTOffset = 1e-4;
 
-bool IsTransparentHit(RayPayload payload)
-{
-    return (payload.flags & kRayPayloadFlagTransparentHit) != 0u;
-}
-
 float3 ShadePayload(RayPayload payload)
 {
     uint faceId = DecodeFaceId(payload.packedNormalAndPaletteId);
@@ -40,7 +35,6 @@ RayPayload TraceScene(
     uint layerMask)
 {
     RayPayload payload;
-    payload.hit = 0u;
     payload.hitT = 0.0;
     payload.packedNormalAndPaletteId = 0u;
     payload.flags = 0u;
@@ -74,10 +68,9 @@ void RayGenMain()
     RayPayload payload = TraceScene(_RaytracingAccelerationStructure, ray, _LayerMask);
 
     float3 color = 0.0;
-    if (payload.hit != 0u)
+    if (HasHit(payload))
     {
-        bool keepTransparent = ShouldKeepScreenDoorHitForPixel(pixel);
-        if (IsTransparentHit(payload) && !keepTransparent)
+        if (IsTransparentHit(payload) && !KeepsScreenDoorHit(payload))
         {
             RayDesc opaqueRay = ray;
             opaqueRay.TMin = min(
@@ -87,7 +80,7 @@ void RayGenMain()
                 _OpaqueRaytracingAccelerationStructure,
                 opaqueRay,
                 _LayerMask);
-            if (opaquePayload.hit != 0u)
+            if (HasHit(opaquePayload))
             {
                 color = ShadePayload(opaquePayload);
             }
@@ -104,7 +97,6 @@ void RayGenMain()
 [shader("miss")]
 void MissMain(inout RayPayload payload : SV_RayPayload)
 {
-    payload.hit = 0u;
     payload.hitT = 0.0;
     payload.packedNormalAndPaletteId = 0u;
     payload.flags = 0u;

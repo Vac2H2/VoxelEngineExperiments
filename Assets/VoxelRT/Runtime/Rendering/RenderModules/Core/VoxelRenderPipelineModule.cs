@@ -1,7 +1,8 @@
 using System;
 using UnityEngine;
+using VoxelRT.Runtime.Rendering.RenderPipeline;
 
-namespace VoxelRT.Runtime.Rendering.RenderPipeline
+namespace VoxelRT.Runtime.Rendering.RenderModules
 {
     public abstract class VoxelRenderPipelineModule : ScriptableObject
     {

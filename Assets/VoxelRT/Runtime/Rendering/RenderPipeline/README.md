@@ -4,6 +4,10 @@
 
 `RenderPipeline` is the SRP host for voxel render features.
 
+Concrete render modules now live in the sibling `../RenderModules` tree. This
+folder only keeps the SRP host, pipeline asset, and per-frame / per-camera
+context types.
+
 It is responsible for:
 
 - owning the `VoxelRenderPipelineAsset` / `VoxelRenderPipeline` entry point
@@ -20,9 +24,17 @@ It is not responsible for:
 
 ## Module Contract
 
-`VoxelRenderPipelineAsset` owns the ordered root module list.
+`VoxelRenderPipelineAsset` owns:
 
-`VoxelRenderPipeline` visits those roots in order for each camera until one module handles rendering.
+- `Available Modules`: the module assets you want attached to this pipeline asset
+- `Selected Module`: the current root render module
+
+At runtime the pipeline renders through `Selected Module`.
+
+If `Selected Module` is left empty on an older asset, the pipeline falls back to
+the legacy ordered root module list for compatibility.
+
+`VoxelRenderPipeline` visits the active root graph for each camera until one module handles rendering.
 
 `VoxelRenderPipelineModule` exposes:
 
@@ -32,7 +44,8 @@ It is not responsible for:
 - `OnRender(...)` for render takeover
 - `RenderSubmodules(...)` for parent-controlled delegation
 
-`VoxelRenderPipelineModuleGroup` is the minimal container module when a parent only wants to compose submodules.
+`VoxelRenderPipelineModuleGroup` is the minimal container module when a parent
+only wants to compose submodules.
 
 ## Topology Rules
 
