@@ -11,6 +11,8 @@ generated GBuffer.
   reusable lighting-family include files
 - `AO/`
   ambient-occlusion pass assets and pass-local helpers
+- `Sun/`
+  directional sun-light pass assets and pass-local helpers
 
 ## Design Rule
 
@@ -30,4 +32,6 @@ shader used by `VoxelRenderer`. At the moment that shared shader is still the
 ## Current Passes
 
 - `AO/`
-  hemisphere-traced ambient occlusion over the voxel scene
+  hemisphere-traced ambient occlusion initializing the shared scalar lighting RT
+- `Sun/`
+  shadow-tested directional sunlight accumulated into the same scalar lighting RT

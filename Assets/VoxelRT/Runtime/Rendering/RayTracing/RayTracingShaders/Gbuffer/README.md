@@ -23,21 +23,24 @@ RTAS hit-stage passes:
 
 - `VoxelOccupancyDXR`
 - `VoxelLightingAO`
+- `VoxelLightingSun`
 
 ## Payload Contract
 
 The payload is still hit-information only:
 
 - `float hitT`
-- `uint packedNormalAndPaletteId`
+- `float3 worldNormal`
+- `uint paletteResidencyId`
 - `uint paletteEntryIndex`
 - `uint flags`
 
 Where:
 
-- `packedNormalAndPaletteId`
-  - low `3` bits = face id
-  - remaining high bits = palette residency id
+- `worldNormal`
+  - hit face normal already transformed to world space in `closesthit`
+- `paletteResidencyId`
+  - palette residency id for the hit instance
 - `paletteEntryIndex`
   - the hit voxel's palette entry index read from `_VoxelDataChunkBuffer`
 - `flags`
@@ -45,7 +48,8 @@ Where:
   - `bit 1` = transparent material
   - `bit 2` = keep current screen-door hit
 
-`closesthit` does not fetch palette or surface-type table data.
+`closesthit` does not fetch palette or surface-type table data, but it does
+transform the hit face normal to world space before returning the payload.
 
 ## GBuffer Outputs
 

@@ -11,20 +11,22 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
         fileName = "RtLightingModule")]
     public sealed class RtLightingModule : VoxelRenderPipelineModule
     {
-        private static readonly int AoPreviewTextureId = Shader.PropertyToID("_VoxelRtAoPreview");
+        private static readonly int ScalarPreviewTextureId = Shader.PropertyToID("_VoxelRtScalarPreview");
 
         [SerializeField] private GenGbufferCore _genGbufferCore = new();
         [SerializeField] private GenAoCore _genAoCore = new();
+        [SerializeField] private GenSunLightCore _genSunLightCore = new();
         [SerializeField] private Material _aoPreviewMaterial;
         [SerializeField] private PreviewTarget _previewTarget = PreviewTarget.Ao;
 
         private enum PreviewTarget
         {
             Ao = 0,
-            Albedo = 1,
-            Normal = 2,
-            Depth = 3,
-            SurfaceInfo = 4,
+            SunLight = 1,
+            Albedo = 2,
+            Normal = 3,
+            Depth = 4,
+            SurfaceInfo = 5,
         }
 
         protected override bool OnRender(in VoxelRenderPipelineCameraContext context)
@@ -41,6 +43,11 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 return false;
             }
 
+            if (!_genSunLightCore.TryCreateRenderData(in context, out GenSunLightCore.RenderData sunLightRenderData))
+            {
+                return false;
+            }
+
             Camera camera = gbufferRenderData.Camera;
             ScriptableRenderContext renderContext = context.RenderContext;
             CommandBuffer commandBuffer = new()
@@ -53,6 +60,9 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 renderContext.SetupCameraProperties(camera);
                 _genGbufferCore.RecordGBufferFill(commandBuffer, in gbufferRenderData);
                 _genAoCore.RecordAoFill(commandBuffer, in aoRenderData);
+                CaptureScalarStagePreviewIfRequested(commandBuffer, gbufferRenderData.Width, gbufferRenderData.Height, PreviewTarget.Ao);
+                _genSunLightCore.RecordSunLightFill(commandBuffer, in sunLightRenderData);
+                CaptureScalarStagePreviewIfRequested(commandBuffer, gbufferRenderData.Width, gbufferRenderData.Height, PreviewTarget.SunLight);
                 renderContext.ExecuteCommandBuffer(commandBuffer);
                 commandBuffer.Clear();
 
@@ -65,6 +75,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 }
 
                 ReleasePreviewTargets(commandBuffer);
+                _genSunLightCore.ReleaseTemporaryTargets(commandBuffer);
                 _genAoCore.ReleaseTemporaryTargets(commandBuffer);
                 _genGbufferCore.ReleaseTemporaryTargets(commandBuffer);
                 renderContext.ExecuteCommandBuffer(commandBuffer);
@@ -88,27 +99,25 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
         {
             _genGbufferCore ??= new GenGbufferCore();
             _genAoCore ??= new GenAoCore();
+            _genSunLightCore ??= new GenSunLightCore();
         }
 
         private void RecordPreview(CommandBuffer commandBuffer, int width, int height)
         {
             RenderTargetIdentifier previewSource = ResolvePreviewSource();
-            if (_previewTarget == PreviewTarget.Ao && _aoPreviewMaterial != null)
+            if (UsesScalarPreview() && _aoPreviewMaterial != null)
             {
-                AllocateAoPreviewTarget(commandBuffer, width, height);
-                commandBuffer.Blit(previewSource, AoPreviewTextureId, _aoPreviewMaterial);
-                commandBuffer.SetGlobalTexture(AoPreviewTextureId, new RenderTargetIdentifier(AoPreviewTextureId));
-                commandBuffer.Blit(AoPreviewTextureId, BuiltinRenderTextureType.CameraTarget);
+                commandBuffer.Blit(ScalarPreviewTextureId, BuiltinRenderTextureType.CameraTarget);
                 return;
             }
 
             commandBuffer.Blit(previewSource, BuiltinRenderTextureType.CameraTarget);
         }
 
-        private static void AllocateAoPreviewTarget(CommandBuffer commandBuffer, int width, int height)
+        private static void AllocateScalarPreviewTarget(CommandBuffer commandBuffer, int width, int height)
         {
             commandBuffer.GetTemporaryRT(
-                AoPreviewTextureId,
+                ScalarPreviewTextureId,
                 new RenderTextureDescriptor(width, height)
                 {
                     dimension = TextureDimension.Tex2D,
@@ -124,16 +133,39 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
 
         private void ReleasePreviewTargets(CommandBuffer commandBuffer)
         {
-            if (_previewTarget == PreviewTarget.Ao && _aoPreviewMaterial != null)
+            if (UsesScalarPreview() && _aoPreviewMaterial != null)
             {
-                commandBuffer.ReleaseTemporaryRT(AoPreviewTextureId);
+                commandBuffer.ReleaseTemporaryRT(ScalarPreviewTextureId);
             }
+        }
+
+        private bool UsesScalarPreview()
+        {
+            return _previewTarget == PreviewTarget.Ao
+                || _previewTarget == PreviewTarget.SunLight;
+        }
+
+        private void CaptureScalarStagePreviewIfRequested(
+            CommandBuffer commandBuffer,
+            int width,
+            int height,
+            PreviewTarget stage)
+        {
+            if (_previewTarget != stage || _aoPreviewMaterial == null)
+            {
+                return;
+            }
+
+            AllocateScalarPreviewTarget(commandBuffer, width, height);
+            commandBuffer.Blit(VoxelRtAoIds.GetRenderTargetIdentifier(), ScalarPreviewTextureId, _aoPreviewMaterial);
+            commandBuffer.SetGlobalTexture(ScalarPreviewTextureId, new RenderTargetIdentifier(ScalarPreviewTextureId));
         }
 
         private RenderTargetIdentifier ResolvePreviewSource()
         {
             return _previewTarget switch
             {
+                PreviewTarget.SunLight => VoxelRtSunLightIds.GetRenderTargetIdentifier(),
                 PreviewTarget.Albedo => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Albedo),
                 PreviewTarget.Normal => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Normal),
                 PreviewTarget.Depth => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Depth),

@@ -17,5 +17,5 @@
 - `Core/` contains detachable rendering cores shared by concrete modules
 - `ModuleGroup/` is the minimal composition module
 - `RtGbuffer/` builds the voxel RT GBuffer set and previews one selected target
-- `RtLighting/` composes GBuffer generation and AO generation into one lighting-stage module
+- `RtLighting/` composes GBuffer generation, AO generation, and sun-light generation into one lighting-stage module
 - `VoxelRayTracingFullscreen/` renders the camera with the fullscreen DXR path

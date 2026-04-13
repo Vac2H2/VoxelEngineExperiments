@@ -48,7 +48,8 @@ struct AttributeData
 struct RayPayload
 {
     float hitT;
-    uint packedNormalAndPaletteId;
+    float3 worldNormal;
+    uint paletteResidencyId;
     uint paletteEntryIndex;
     uint flags;
 };
@@ -71,16 +72,6 @@ bool KeepsScreenDoorHit(RayPayload payload)
 bool ShouldKeepScreenDoorHitForPixel(uint2 pixel)
 {
     return ((pixel.x ^ pixel.y) & 1u) == 0u;
-}
-
-uint DecodeFaceId(uint packedNormalAndPaletteId)
-{
-    return packedNormalAndPaletteId & 0x7u;
-}
-
-uint DecodePaletteId(uint packedNormalAndPaletteId)
-{
-    return packedNormalAndPaletteId >> 3u;
 }
 
 uint DecodeSurfaceType(uint packedPaletteEntry)
@@ -364,9 +355,11 @@ AttributeData EncodeAttributes(VoxelHit hit)
     return attributes;
 }
 
-uint PackNormalAndPaletteId(uint faceId, uint paletteId)
+float3 TransformFaceNormalToWorld(uint faceId)
 {
-    return (paletteId << 3u) | (faceId & 0x7u);
+    float3 normalOS = DecodeFaceNormal(faceId);
+    float3x3 worldToObject = (float3x3)WorldToObject();
+    return normalize(mul(normalOS, worldToObject));
 }
 
 bool IsOpaqueMaterial()
@@ -580,7 +573,8 @@ void ExecuteProceduralClosestHit(
     bool keepScreenDoorHit = isOpaqueMaterial || ShouldKeepScreenDoorHit();
 
     payload.hitT = RayTCurrent();
-    payload.packedNormalAndPaletteId = PackNormalAndPaletteId(faceId, paletteId);
+    payload.worldNormal = TransformFaceNormalToWorld(faceId);
+    payload.paletteResidencyId = paletteId;
     payload.paletteEntryIndex = isValidChunk
         ? ReadPaletteEntryIndex(chunkGlobalIndex, localVoxelIndex)
         : 0u;

@@ -16,6 +16,8 @@ documentation stay together.
   encapsulates voxel RT GBuffer generation and its shared texture IDs
 - `GenAoCore/`
   encapsulates AO generation and its shared texture ID
+- `GenSunLightCore/`
+  encapsulates simple directional sun-light generation and its shared texture ID
 
 ## Design Rule
 

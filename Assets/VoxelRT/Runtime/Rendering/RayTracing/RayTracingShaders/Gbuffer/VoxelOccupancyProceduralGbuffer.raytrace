@@ -40,10 +40,9 @@ float4 DecodeAlbedoOutput(uint packedPaletteEntry)
         0.0);
 }
 
-float4 DecodeNormalOutput(uint faceId)
+float4 EncodeWorldNormalOutput(float3 normalWS)
 {
-    float3 normal = DecodeFaceNormal(faceId);
-    return float4((normal * 0.5) + 0.5, 0.0);
+    return float4((normalize(normalWS) * 0.5) + 0.5, 0.0);
 }
 
 float ComputeLinearViewDepth(float hitT, float3 rayDirectionWS)
@@ -58,7 +57,8 @@ RayPayload TraceScene(
 {
     RayPayload payload;
     payload.hitT = 0.0;
-    payload.packedNormalAndPaletteId = 0u;
+    payload.worldNormal = 0.0;
+    payload.paletteResidencyId = 0u;
     payload.paletteEntryIndex = 0u;
     payload.flags = 0u;
 
@@ -109,14 +109,13 @@ void RayGenMain()
 
     if (HasHit(visiblePayload))
     {
-        uint packedNormalAndPaletteId = visiblePayload.packedNormalAndPaletteId;
         uint packedPaletteEntry = ReadPaletteEntry(
-            DecodePaletteId(packedNormalAndPaletteId),
+            visiblePayload.paletteResidencyId,
             visiblePayload.paletteEntryIndex);
         uint surfaceType = DecodeSurfaceType(packedPaletteEntry);
 
         albedo = DecodeAlbedoOutput(packedPaletteEntry);
-        normal = DecodeNormalOutput(DecodeFaceId(packedNormalAndPaletteId));
+        normal = EncodeWorldNormalOutput(visiblePayload.worldNormal);
         depth = ComputeLinearViewDepth(visiblePayload.hitT, ray.Direction);
         surfaceInfo = UnpackRgba8Unorm(ReadSurfaceInfoEntry(surfaceType));
     }
@@ -131,7 +130,8 @@ void RayGenMain()
 void MissMain(inout RayPayload payload : SV_RayPayload)
 {
     payload.hitT = 0.0;
-    payload.packedNormalAndPaletteId = 0u;
+    payload.worldNormal = 0.0;
+    payload.paletteResidencyId = 0u;
     payload.paletteEntryIndex = 0u;
     payload.flags = 0u;
 }

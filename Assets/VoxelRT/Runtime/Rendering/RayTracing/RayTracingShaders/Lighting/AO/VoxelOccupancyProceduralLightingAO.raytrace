@@ -12,10 +12,11 @@ uint _OpaqueInstanceMask;
 uint _AoFrameIndex;
 uint _AoSampleCount;
 float _AoMaxDistance;
+float _AoMaxAmbientVisibility;
 float _AoNormalBias;
 float _AoJitterRadius;
 
-RWTexture2D<float> _VoxelRtAo;
+RWTexture2D<float> _VoxelRtLighting;
 
 static const uint kDefaultAoSampleCount = 2u;
 static const float kDefaultAoMaxDistance = 24.0;
@@ -36,6 +37,11 @@ uint ResolveAoSampleCount()
 float ResolveAoMaxDistance()
 {
     return _AoMaxDistance <= 0.0 ? kDefaultAoMaxDistance : _AoMaxDistance;
+}
+
+float ResolveAoMaxAmbientVisibility()
+{
+    return saturate(_AoMaxAmbientVisibility);
 }
 
 float ResolveAoNormalBias()
@@ -86,12 +92,13 @@ void RayGenMain()
     float3 viewDirectionWS;
     if (!TryLoadLightingSurface(pixel, positionWS, normalWS, viewDirectionWS))
     {
-        _VoxelRtAo[pixel] = 1.0;
+        _VoxelRtLighting[pixel] = 0.0;
         return;
     }
 
     uint sampleCount = ResolveAoSampleCount();
     float maxDistance = ResolveAoMaxDistance();
+    float maxAmbientVisibility = ResolveAoMaxAmbientVisibility();
     float normalBias = ResolveAoNormalBias();
     float jitterRadius = ResolveAoJitterRadius();
     uint instanceMask = ResolveOpaqueInstanceMask();
@@ -116,7 +123,7 @@ void RayGenMain()
         visibility += EvaluateAoSampleVisibility(payload, maxDistance);
     }
 
-    _VoxelRtAo[pixel] = visibility / sampleCount;
+    _VoxelRtLighting[pixel] = maxAmbientVisibility * (visibility / sampleCount);
 }
 
 [shader("miss")]

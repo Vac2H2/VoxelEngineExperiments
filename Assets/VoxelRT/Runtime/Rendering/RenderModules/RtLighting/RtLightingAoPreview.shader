@@ -1,5 +1,10 @@
 Shader "VoxelRT/Rendering/Preview/RtLightingAoPreview"
 {
+    Properties
+    {
+        _MainTex ("Source", 2D) = "white" {}
+    }
+
     SubShader
     {
         Tags { "RenderType" = "Opaque" "Queue" = "Overlay" }

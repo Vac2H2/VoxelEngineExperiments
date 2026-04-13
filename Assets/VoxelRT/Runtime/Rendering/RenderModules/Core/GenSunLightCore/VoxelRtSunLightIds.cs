@@ -3,13 +3,13 @@ using UnityEngine.Rendering;
 
 namespace VoxelRT.Runtime.Rendering.RenderModules.Core
 {
-    public static class VoxelRtAoIds
+    public static class VoxelRtSunLightIds
     {
-        public static readonly int AoTextureId = Shader.PropertyToID("_VoxelRtLighting");
+        public static readonly int SunLightTextureId = Shader.PropertyToID("_VoxelRtLighting");
 
         public static RenderTargetIdentifier GetRenderTargetIdentifier()
         {
-            return new RenderTargetIdentifier(AoTextureId);
+            return new RenderTargetIdentifier(SunLightTextureId);
         }
     }
 }

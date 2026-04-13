@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using VoxelRT.Runtime.Rendering.RenderPipeline;
 using VoxelRT.Runtime.Rendering.VoxelRuntime;
@@ -8,14 +7,11 @@ using VoxelRT.Runtime.Rendering.VoxelRuntime;
 namespace VoxelRT.Runtime.Rendering.RenderModules.Core
 {
     [Serializable]
-    public sealed class GenAoCore
+    public sealed class GenSunLightCore
     {
-        private const string DefaultShaderPassName = "VoxelLightingAO";
+        private const string DefaultShaderPassName = "VoxelLightingSun";
         private const string RayGenerationShaderName = "RayGenMain";
         private const int OpaqueInstanceMask = 0x1;
-        private const int DefaultSampleCount = 2;
-        private const float DefaultMaxDistance = 24.0f;
-        private const float DefaultMaxAmbientVisibility = 0.25f;
         private const float DefaultNormalBias = 0.05f;
         private const float DefaultJitterRadius = 0.025f;
 
@@ -24,34 +20,34 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         private static readonly int CameraPositionWsId = Shader.PropertyToID("_CameraPositionWS");
         private static readonly int CameraForwardWsId = Shader.PropertyToID("_CameraForwardWS");
         private static readonly int OpaqueInstanceMaskId = Shader.PropertyToID("_OpaqueInstanceMask");
-        private static readonly int AoFrameIndexId = Shader.PropertyToID("_AoFrameIndex");
-        private static readonly int AoSampleCountId = Shader.PropertyToID("_AoSampleCount");
-        private static readonly int AoMaxDistanceId = Shader.PropertyToID("_AoMaxDistance");
-        private static readonly int AoMaxAmbientVisibilityId = Shader.PropertyToID("_AoMaxAmbientVisibility");
-        private static readonly int AoNormalBiasId = Shader.PropertyToID("_AoNormalBias");
-        private static readonly int AoJitterRadiusId = Shader.PropertyToID("_AoJitterRadius");
+        private static readonly int SunFrameIndexId = Shader.PropertyToID("_SunFrameIndex");
+        private static readonly int SunDirectionWsId = Shader.PropertyToID("_SunDirectionWS");
+        private static readonly int SunShadowDistanceId = Shader.PropertyToID("_SunShadowDistance");
+        private static readonly int SunNormalBiasId = Shader.PropertyToID("_SunNormalBias");
+        private static readonly int SunJitterRadiusId = Shader.PropertyToID("_SunJitterRadius");
 
         [SerializeField] private RayTracingShader _rayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
-        [SerializeField, Min(0)] private int _sampleCount = DefaultSampleCount;
-        [SerializeField, Min(0.0f)] private float _maxDistance = DefaultMaxDistance;
-        [SerializeField, Range(0.0f, 1.0f)] private float _maxAmbientVisibility = DefaultMaxAmbientVisibility;
+        [SerializeField] private Vector3 _fallbackSunDirection = new(0.4f, 1.0f, 0.2f);
+        [SerializeField, Min(0.0f)] private float _shadowDistance;
         [SerializeField, Min(0.0f)] private float _normalBias = DefaultNormalBias;
         [SerializeField, Min(0.0f)] private float _jitterRadius = DefaultJitterRadius;
-        [SerializeField] private GraphicsFormat _outputFormat = GraphicsFormat.R16_SFloat;
-
         public readonly struct RenderData
         {
             public RenderData(
                 VoxelRuntime.VoxelRuntime runtime,
                 Camera camera,
                 int width,
-                int height)
+                int height,
+                Vector3 sunDirectionWs,
+                float shadowDistance)
             {
                 Runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
                 Camera = camera != null ? camera : throw new ArgumentNullException(nameof(camera));
                 Width = width;
                 Height = height;
+                SunDirectionWs = sunDirectionWs;
+                ShadowDistance = shadowDistance;
             }
 
             public VoxelRuntime.VoxelRuntime Runtime { get; }
@@ -61,6 +57,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             public int Width { get; }
 
             public int Height { get; }
+
+            public Vector3 SunDirectionWs { get; }
+
+            public float ShadowDistance { get; }
         }
 
         public bool TryCreateRenderData(
@@ -87,11 +87,18 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 return false;
             }
 
-            renderData = new RenderData(bootstrap.Runtime, camera, width, height);
+            ResolveSun(camera, out Vector3 sunDirectionWs, out float shadowDistance);
+            renderData = new RenderData(
+                bootstrap.Runtime,
+                camera,
+                width,
+                height,
+                sunDirectionWs,
+                shadowDistance);
             return true;
         }
 
-        public void RecordAoFill(
+        public void RecordSunLightFill(
             CommandBuffer commandBuffer,
             in RenderData renderData)
         {
@@ -99,8 +106,6 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             {
                 throw new ArgumentNullException(nameof(commandBuffer));
             }
-
-            AllocateTemporaryTargets(commandBuffer, renderData.Width, renderData.Height);
 
             renderData.Runtime.ResourceBinder.BindRayTracingShader(commandBuffer, _rayTracingShader);
             commandBuffer.SetRayTracingShaderPass(_rayTracingShader, ResolveShaderPassName());
@@ -128,19 +133,21 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 new Vector4(cameraForward.x, cameraForward.y, cameraForward.z, 0.0f));
 
             commandBuffer.SetRayTracingIntParam(_rayTracingShader, OpaqueInstanceMaskId, OpaqueInstanceMask);
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, AoFrameIndexId, Time.frameCount);
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, AoSampleCountId, Mathf.Max(_sampleCount, 0));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, AoMaxDistanceId, Mathf.Max(_maxDistance, 0.0f));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, AoMaxAmbientVisibilityId, Mathf.Clamp01(_maxAmbientVisibility));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, AoNormalBiasId, Mathf.Max(_normalBias, 0.0f));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, AoJitterRadiusId, Mathf.Max(_jitterRadius, 0.0f));
+            commandBuffer.SetRayTracingIntParam(_rayTracingShader, SunFrameIndexId, Time.frameCount);
+            commandBuffer.SetRayTracingVectorParam(
+                _rayTracingShader,
+                SunDirectionWsId,
+                new Vector4(renderData.SunDirectionWs.x, renderData.SunDirectionWs.y, renderData.SunDirectionWs.z, 0.0f));
+            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunShadowDistanceId, renderData.ShadowDistance);
+            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunNormalBiasId, Mathf.Max(_normalBias, 0.0f));
+            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunJitterRadiusId, Mathf.Max(_jitterRadius, 0.0f));
 
             BindInputTexture(commandBuffer, VoxelRtGbufferTexture.Normal);
             BindInputTexture(commandBuffer, VoxelRtGbufferTexture.Depth);
             commandBuffer.SetRayTracingTextureParam(
                 _rayTracingShader,
-                VoxelRtAoIds.AoTextureId,
-                VoxelRtAoIds.GetRenderTargetIdentifier());
+                VoxelRtSunLightIds.SunLightTextureId,
+                VoxelRtSunLightIds.GetRenderTargetIdentifier());
             commandBuffer.DispatchRays(
                 _rayTracingShader,
                 RayGenerationShaderName,
@@ -150,8 +157,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 renderData.Camera);
 
             commandBuffer.SetGlobalTexture(
-                VoxelRtAoIds.AoTextureId,
-                VoxelRtAoIds.GetRenderTargetIdentifier());
+                VoxelRtSunLightIds.SunLightTextureId,
+                VoxelRtSunLightIds.GetRenderTargetIdentifier());
         }
 
         public void ReleaseTemporaryTargets(CommandBuffer commandBuffer)
@@ -160,25 +167,35 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             {
                 throw new ArgumentNullException(nameof(commandBuffer));
             }
-
-            commandBuffer.ReleaseTemporaryRT(VoxelRtAoIds.AoTextureId);
-        }
-
-        private void AllocateTemporaryTargets(CommandBuffer commandBuffer, int width, int height)
-        {
-            commandBuffer.GetTemporaryRT(
-                VoxelRtAoIds.AoTextureId,
-                CreateTextureDescriptor(width, height, ResolveOutputFormat()),
-                FilterMode.Point);
         }
 
         private void BindInputTexture(CommandBuffer commandBuffer, VoxelRtGbufferTexture texture)
         {
-            int textureId = VoxelRtGbufferIds.GetTextureId(texture);
             commandBuffer.SetRayTracingTextureParam(
                 _rayTracingShader,
-                textureId,
+                VoxelRtGbufferIds.GetTextureId(texture),
                 VoxelRtGbufferIds.GetRenderTargetIdentifier(texture));
+        }
+
+        private void ResolveSun(
+            Camera camera,
+            out Vector3 sunDirectionWs,
+            out float shadowDistance)
+        {
+            Light sunLight = RenderSettings.sun;
+            if (sunLight != null)
+            {
+                sunDirectionWs = NormalizeOrFallback(-sunLight.transform.forward, Vector3.up);
+            }
+            else
+            {
+                sunDirectionWs = NormalizeOrFallback(_fallbackSunDirection, Vector3.up);
+            }
+
+            float resolvedShadowDistance = _shadowDistance <= 0.0f
+                ? camera.farClipPlane
+                : _shadowDistance;
+            shadowDistance = Mathf.Max(resolvedShadowDistance, 1e-4f);
         }
 
         private string ResolveShaderPassName()
@@ -188,28 +205,11 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 : _shaderPassName;
         }
 
-        private GraphicsFormat ResolveOutputFormat()
+        private static Vector3 NormalizeOrFallback(Vector3 value, Vector3 fallback)
         {
-            return _outputFormat == GraphicsFormat.None
-                ? GraphicsFormat.R16_SFloat
-                : _outputFormat;
-        }
-
-        private static RenderTextureDescriptor CreateTextureDescriptor(
-            int width,
-            int height,
-            GraphicsFormat graphicsFormat)
-        {
-            return new RenderTextureDescriptor(width, height)
-            {
-                dimension = TextureDimension.Tex2D,
-                depthBufferBits = 0,
-                msaaSamples = 1,
-                graphicsFormat = graphicsFormat,
-                enableRandomWrite = true,
-                useMipMap = false,
-                autoGenerateMips = false
-            };
+            return value.sqrMagnitude > 1e-8f
+                ? value.normalized
+                : fallback.normalized;
         }
 
         private static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(Camera camera, int width, int height)

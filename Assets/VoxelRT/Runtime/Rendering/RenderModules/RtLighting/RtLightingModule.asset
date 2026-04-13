@@ -24,5 +24,15 @@ MonoBehaviour:
     _maxDistance: 24
     _normalBias: 0.05
     _jitterRadius: 0.025
+  _genSunLightCore:
+    _rayTracingShader: {fileID: 4807578003741378534, guid: 0d5dd5093c54451687f96076586f4e2e, type: 3}
+    _shaderPassName: VoxelLightingSun
+    _fallbackSunDirection: {x: 0.4, y: 1, z: 0.2}
+    _fallbackSunColor: {r: 1, g: 1, b: 1, a: 1}
+    _fallbackSunIntensity: 1
+    _shadowDistance: 0
+    _normalBias: 0.05
+    _jitterRadius: 0.025
+    _outputFormat: 48
   _aoPreviewMaterial: {fileID: 2100000, guid: 65580773df1a45a9804388dde7d8d903, type: 2}
   _previewTarget: 0
