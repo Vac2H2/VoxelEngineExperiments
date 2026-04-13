@@ -10,6 +10,8 @@ RaytracingAccelerationStructure _RaytracingAccelerationStructure;
 float4x4 _PixelCoordToViewDirWS;
 float3 _CameraPositionWS;
 float3 _CameraForwardWS;
+float4x4 _CurrentWorldToClip;
+float4x4 _PreviousWorldToClip;
 float _RayTMin;
 float _RayTMax;
 uint _AllInstanceMask;
@@ -19,6 +21,7 @@ RWTexture2D<float4> _VoxelRtAlbedo;
 RWTexture2D<float4> _VoxelRtNormal;
 RWTexture2D<float> _VoxelRtDepth;
 RWTexture2D<float4> _VoxelRtSurfaceInfo;
+RWTexture2D<float2> _VoxelRtVelocity;
 
 static const float kSecondaryRayTOffset = 1e-4;
 
@@ -48,6 +51,13 @@ float4 EncodeWorldNormalOutput(float3 normalWS)
 float ComputeLinearViewDepth(float hitT, float3 rayDirectionWS)
 {
     return max(hitT * dot(rayDirectionWS, _CameraForwardWS), 0.0);
+}
+
+float2 ComputeUvFromClip(float4 clipPosition)
+{
+    float invW = rcp(max(abs(clipPosition.w), 1e-6));
+    float2 ndc = clipPosition.xy * invW;
+    return (ndc * 0.5) + 0.5;
 }
 
 RayPayload TraceScene(
@@ -106,6 +116,7 @@ void RayGenMain()
     float4 normal = 0.0;
     float depth = 0.0;
     float4 surfaceInfo = 0.0;
+    float2 velocity = 0.0;
 
     if (HasHit(visiblePayload))
     {
@@ -118,12 +129,20 @@ void RayGenMain()
         normal = EncodeWorldNormalOutput(visiblePayload.worldNormal);
         depth = ComputeLinearViewDepth(visiblePayload.hitT, ray.Direction);
         surfaceInfo = UnpackRgba8Unorm(ReadSurfaceInfoEntry(surfaceType));
+
+        float3 positionWS = ray.Origin + (ray.Direction * visiblePayload.hitT);
+        float4 currentClip = mul(_CurrentWorldToClip, float4(positionWS, 1.0));
+        float4 previousClip = mul(_PreviousWorldToClip, float4(positionWS, 1.0));
+        float2 currentUv = ComputeUvFromClip(currentClip);
+        float2 previousUv = ComputeUvFromClip(previousClip);
+        velocity = currentUv - previousUv;
     }
 
     _VoxelRtAlbedo[pixel] = albedo;
     _VoxelRtNormal[pixel] = normal;
     _VoxelRtDepth[pixel] = depth;
     _VoxelRtSurfaceInfo[pixel] = surfaceInfo;
+    _VoxelRtVelocity[pixel] = velocity;
 }
 
 [shader("miss")]

@@ -17,8 +17,11 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
         [SerializeField] private GenAoCore _genAoCore = new();
         [SerializeField] private GenSunLightCore _genSunLightCore = new();
         [SerializeField] private GenLocalLightCore _genLocalLightCore = new();
+        [SerializeField] private GenLightAdditiveCore _genLightAdditiveCore = new();
+        [SerializeField] private GenDenoiseLightingCore _genDenoiseLightingCore = new();
+        [SerializeField] private GenComposeLightingCore _genComposeLightingCore = new();
         [SerializeField] private Material _aoPreviewMaterial;
-        [SerializeField] private PreviewTarget _previewTarget = PreviewTarget.Ao;
+        [SerializeField] private PreviewTarget _previewTarget = PreviewTarget.FinalColor;
 
         private enum PreviewTarget
         {
@@ -29,6 +32,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             Depth = 4,
             SurfaceInfo = 5,
             LocalLight = 6,
+            LightingRaw = 7,
+            LightingAfterTemporal = 8,
+            LightingAfterSpatial = 9,
+            FinalColor = 10,
         }
 
         protected override bool OnRender(in VoxelRenderPipelineCameraContext context)
@@ -55,6 +62,21 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 return false;
             }
 
+            if (!_genLightAdditiveCore.TryCreateRenderData(context.Camera, out GenLightAdditiveCore.RenderData lightAdditiveRenderData))
+            {
+                return false;
+            }
+
+            if (!_genDenoiseLightingCore.TryCreateRenderData(context.Camera, out GenDenoiseLightingCore.RenderData denoiseRenderData))
+            {
+                return false;
+            }
+
+            if (!_genComposeLightingCore.TryCreateRenderData(context.Camera, out GenComposeLightingCore.RenderData composeRenderData))
+            {
+                return false;
+            }
+
             Camera camera = gbufferRenderData.Camera;
             ScriptableRenderContext renderContext = context.RenderContext;
             CommandBuffer commandBuffer = new()
@@ -70,6 +92,9 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 CaptureScalarStagePreviewIfRequested(commandBuffer, gbufferRenderData.Width, gbufferRenderData.Height, PreviewTarget.Ao);
                 _genSunLightCore.RecordSunLightFill(commandBuffer, in sunLightRenderData);
                 _genLocalLightCore.RecordLocalLightFill(commandBuffer, in localLightRenderData);
+                _genLightAdditiveCore.RecordLightAdditive(commandBuffer, in lightAdditiveRenderData);
+                _genDenoiseLightingCore.RecordDenoise(commandBuffer, in denoiseRenderData);
+                _genComposeLightingCore.RecordCompose(commandBuffer, in composeRenderData);
                 renderContext.ExecuteCommandBuffer(commandBuffer);
                 commandBuffer.Clear();
 
@@ -82,6 +107,9 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 }
 
                 ReleasePreviewTargets(commandBuffer);
+                _genComposeLightingCore.ReleaseTemporaryTargets(commandBuffer);
+                _genDenoiseLightingCore.ReleaseTemporaryTargets(commandBuffer);
+                _genLightAdditiveCore.ReleaseTemporaryTargets(commandBuffer);
                 _genLocalLightCore.ReleaseTemporaryTargets(commandBuffer);
                 _genSunLightCore.ReleaseTemporaryTargets(commandBuffer);
                 _genAoCore.ReleaseTemporaryTargets(commandBuffer);
@@ -109,11 +137,17 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             _genAoCore ??= new GenAoCore();
             _genSunLightCore ??= new GenSunLightCore();
             _genLocalLightCore ??= new GenLocalLightCore();
+            _genLightAdditiveCore ??= new GenLightAdditiveCore();
+            _genDenoiseLightingCore ??= new GenDenoiseLightingCore();
+            _genComposeLightingCore ??= new GenComposeLightingCore();
         }
 
         protected override void OnPipelineDisposed()
         {
             _genLocalLightCore?.Dispose();
+            _genLightAdditiveCore?.Dispose();
+            _genDenoiseLightingCore?.Dispose();
+            _genComposeLightingCore?.Dispose();
         }
 
         private void RecordPreview(CommandBuffer commandBuffer, int width, int height)
@@ -185,6 +219,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             {
                 PreviewTarget.SunLight => VoxelRtSunLightIds.GetRenderTargetIdentifier(),
                 PreviewTarget.LocalLight => VoxelRtLocalLightIds.GetRenderTargetIdentifier(),
+                PreviewTarget.LightingRaw => VoxelRtLightingIds.GetRenderTargetIdentifier(VoxelRtLightingTexture.Raw),
+                PreviewTarget.LightingAfterTemporal => VoxelRtLightingIds.GetRenderTargetIdentifier(VoxelRtLightingTexture.AfterTemporal),
+                PreviewTarget.LightingAfterSpatial => VoxelRtLightingIds.GetRenderTargetIdentifier(VoxelRtLightingTexture.AfterSpatial),
+                PreviewTarget.FinalColor => VoxelRtLightingIds.GetRenderTargetIdentifier(VoxelRtLightingTexture.FinalColor),
                 PreviewTarget.Albedo => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Albedo),
                 PreviewTarget.Normal => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Normal),
                 PreviewTarget.Depth => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Depth),

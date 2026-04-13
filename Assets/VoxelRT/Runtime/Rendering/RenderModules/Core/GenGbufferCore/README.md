@@ -20,6 +20,11 @@ set for one camera.
 - `_VoxelRtNormal`
 - `_VoxelRtDepth`
 - `_VoxelRtSurfaceInfo`
+- `_VoxelRtVelocity`
+
+`_VoxelRtVelocity` stores screen-space motion vectors derived from the current
+and previous camera clip transforms. The lighting denoise chain uses that RT
+for temporal reprojection.
 
 `VoxelRtGbufferIds` lives next to this core because it is part of the core
 contract that downstream lighting passes consume.

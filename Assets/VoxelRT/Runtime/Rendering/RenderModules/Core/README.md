@@ -20,6 +20,12 @@ documentation stay together.
   encapsulates simple directional sun-light generation and its shared texture ID
 - `GenLocalLightCore/`
   encapsulates local-light candidate collection and local direct-light generation
+- `GenLightAdditiveCore/`
+  merges AO, sunlight, and local lights into one additive lighting target
+- `GenDenoiseLightingCore/`
+  runs temporal and spatial denoise over the additive lighting target
+- `GenComposeLightingCore/`
+  multiplies denoised lighting with albedo to produce the final color
 
 ## Design Rule
 

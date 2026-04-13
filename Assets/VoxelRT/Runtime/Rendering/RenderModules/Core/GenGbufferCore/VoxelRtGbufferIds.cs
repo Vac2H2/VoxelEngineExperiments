@@ -9,6 +9,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         Normal = 1,
         Depth = 2,
         SurfaceInfo = 3,
+        Velocity = 4,
     }
 
     public static class VoxelRtGbufferIds
@@ -17,6 +18,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         public static readonly int NormalTextureId = Shader.PropertyToID("_VoxelRtNormal");
         public static readonly int DepthTextureId = Shader.PropertyToID("_VoxelRtDepth");
         public static readonly int SurfaceInfoTextureId = Shader.PropertyToID("_VoxelRtSurfaceInfo");
+        public static readonly int VelocityTextureId = Shader.PropertyToID("_VoxelRtVelocity");
 
         public static int GetTextureId(VoxelRtGbufferTexture texture)
         {
@@ -25,6 +27,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 VoxelRtGbufferTexture.Normal => NormalTextureId,
                 VoxelRtGbufferTexture.Depth => DepthTextureId,
                 VoxelRtGbufferTexture.SurfaceInfo => SurfaceInfoTextureId,
+                VoxelRtGbufferTexture.Velocity => VelocityTextureId,
                 _ => AlbedoTextureId,
             };
         }

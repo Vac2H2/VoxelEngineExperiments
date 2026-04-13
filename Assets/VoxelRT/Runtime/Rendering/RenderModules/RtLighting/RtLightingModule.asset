@@ -44,4 +44,4 @@ MonoBehaviour:
     _minContribution: 0.0001
     _outputFormat: 48
   _aoPreviewMaterial: {fileID: 2100000, guid: 65580773df1a45a9804388dde7d8d903, type: 2}
-  _previewTarget: 6
+  _previewTarget: 10

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -20,10 +21,14 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         private static readonly int PixelCoordToViewDirWsId = Shader.PropertyToID("_PixelCoordToViewDirWS");
         private static readonly int CameraPositionWsId = Shader.PropertyToID("_CameraPositionWS");
         private static readonly int CameraForwardWsId = Shader.PropertyToID("_CameraForwardWS");
+        private static readonly int CurrentWorldToClipId = Shader.PropertyToID("_CurrentWorldToClip");
+        private static readonly int PreviousWorldToClipId = Shader.PropertyToID("_PreviousWorldToClip");
         private static readonly int RayTMinId = Shader.PropertyToID("_RayTMin");
         private static readonly int RayTMaxId = Shader.PropertyToID("_RayTMax");
         private static readonly int AllInstanceMaskId = Shader.PropertyToID("_AllInstanceMask");
         private static readonly int OpaqueInstanceMaskId = Shader.PropertyToID("_OpaqueInstanceMask");
+
+        [NonSerialized] private readonly Dictionary<int, Matrix4x4> _previousWorldToClipByCamera = new();
 
         [SerializeField] private RayTracingShader _rayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
@@ -34,12 +39,16 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 VoxelRuntime.VoxelRuntime runtime,
                 Camera camera,
                 int width,
-                int height)
+                int height,
+                Matrix4x4 currentWorldToClip,
+                Matrix4x4 previousWorldToClip)
             {
                 Runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
                 Camera = camera != null ? camera : throw new ArgumentNullException(nameof(camera));
                 Width = width;
                 Height = height;
+                CurrentWorldToClip = currentWorldToClip;
+                PreviousWorldToClip = previousWorldToClip;
             }
 
             public VoxelRuntime.VoxelRuntime Runtime { get; }
@@ -49,6 +58,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             public int Width { get; }
 
             public int Height { get; }
+
+            public Matrix4x4 CurrentWorldToClip { get; }
+
+            public Matrix4x4 PreviousWorldToClip { get; }
         }
 
         public bool TryCreateRenderData(
@@ -75,7 +88,18 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 return false;
             }
 
-            renderData = new RenderData(bootstrap.Runtime, camera, width, height);
+            Matrix4x4 currentWorldToClip = ComputeWorldToClipMatrix(camera);
+            Matrix4x4 previousWorldToClip = TryGetPreviousWorldToClip(camera, out Matrix4x4 storedWorldToClip)
+                ? storedWorldToClip
+                : currentWorldToClip;
+
+            renderData = new RenderData(
+                bootstrap.Runtime,
+                camera,
+                width,
+                height,
+                currentWorldToClip,
+                previousWorldToClip);
             return true;
         }
 
@@ -130,6 +154,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 _rayTracingShader,
                 CameraForwardWsId,
                 new Vector4(cameraForward.x, cameraForward.y, cameraForward.z, 0.0f));
+            commandBuffer.SetRayTracingMatrixParam(_rayTracingShader, CurrentWorldToClipId, renderData.CurrentWorldToClip);
+            commandBuffer.SetRayTracingMatrixParam(_rayTracingShader, PreviousWorldToClipId, renderData.PreviousWorldToClip);
 
             float rayTMin = MinimumRayT;
             float rayTMax = Mathf.Max(renderData.Camera.farClipPlane, rayTMin);
@@ -141,6 +167,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             BindOutputTexture(commandBuffer, VoxelRtGbufferTexture.Normal);
             BindOutputTexture(commandBuffer, VoxelRtGbufferTexture.Depth);
             BindOutputTexture(commandBuffer, VoxelRtGbufferTexture.SurfaceInfo);
+            BindOutputTexture(commandBuffer, VoxelRtGbufferTexture.Velocity);
             commandBuffer.DispatchRays(
                 _rayTracingShader,
                 RayGenerationShaderName,
@@ -153,6 +180,9 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             ExposeGlobalTexture(commandBuffer, VoxelRtGbufferTexture.Normal);
             ExposeGlobalTexture(commandBuffer, VoxelRtGbufferTexture.Depth);
             ExposeGlobalTexture(commandBuffer, VoxelRtGbufferTexture.SurfaceInfo);
+            ExposeGlobalTexture(commandBuffer, VoxelRtGbufferTexture.Velocity);
+
+            RememberCurrentWorldToClip(renderData.Camera, renderData.CurrentWorldToClip);
         }
 
         public void ReleaseTemporaryTargets(CommandBuffer commandBuffer)
@@ -166,6 +196,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             commandBuffer.ReleaseTemporaryRT(VoxelRtGbufferIds.NormalTextureId);
             commandBuffer.ReleaseTemporaryRT(VoxelRtGbufferIds.DepthTextureId);
             commandBuffer.ReleaseTemporaryRT(VoxelRtGbufferIds.SurfaceInfoTextureId);
+            commandBuffer.ReleaseTemporaryRT(VoxelRtGbufferIds.VelocityTextureId);
         }
 
         private void AllocateTemporaryTargets(CommandBuffer commandBuffer, int width, int height)
@@ -185,6 +216,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             commandBuffer.GetTemporaryRT(
                 VoxelRtGbufferIds.SurfaceInfoTextureId,
                 CreateTextureDescriptor(width, height, GraphicsFormat.R8G8B8A8_UNorm),
+                FilterMode.Point);
+            commandBuffer.GetTemporaryRT(
+                VoxelRtGbufferIds.VelocityTextureId,
+                CreateTextureDescriptor(width, height, GraphicsFormat.R16G16_SFloat),
                 FilterMode.Point);
         }
 
@@ -225,6 +260,33 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 useMipMap = false,
                 autoGenerateMips = false
             };
+        }
+
+        private bool TryGetPreviousWorldToClip(Camera camera, out Matrix4x4 previousWorldToClip)
+        {
+            if (camera != null && _previousWorldToClipByCamera.TryGetValue(camera.GetInstanceID(), out previousWorldToClip))
+            {
+                return true;
+            }
+
+            previousWorldToClip = Matrix4x4.identity;
+            return false;
+        }
+
+        private void RememberCurrentWorldToClip(Camera camera, Matrix4x4 currentWorldToClip)
+        {
+            if (camera == null)
+            {
+                return;
+            }
+
+            _previousWorldToClipByCamera[camera.GetInstanceID()] = currentWorldToClip;
+        }
+
+        private static Matrix4x4 ComputeWorldToClipMatrix(Camera camera)
+        {
+            Matrix4x4 projectionMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);
+            return projectionMatrix * camera.worldToCameraMatrix;
         }
 
         private static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(Camera camera, int width, int height)
