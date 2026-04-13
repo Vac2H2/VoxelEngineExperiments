@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using VoxelRT.Runtime.Rendering.Lighting;
 using VoxelRT.Runtime.Rendering.RenderModules.Core;
 using VoxelRT.Runtime.Rendering.RenderPipeline;
 
@@ -21,6 +22,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
         [SerializeField] private GenDenoiseLightingCore _genDenoiseLightingCore = new();
         [SerializeField] private GenComposeLightingCore _genComposeLightingCore = new();
         [SerializeField] private Material _aoPreviewMaterial;
+        [SerializeField] private LightingSamplingPattern _samplingPattern = LightingSamplingPattern.Hash;
+        [SerializeField] private Texture[] _blueNoiseFrames = System.Array.Empty<Texture>();
         [SerializeField] private PreviewTarget _previewTarget = PreviewTarget.FinalColor;
 
         private enum PreviewTarget
@@ -41,6 +44,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
         protected override bool OnRender(in VoxelRenderPipelineCameraContext context)
         {
             EnsureCores();
+            ConfigureSampling();
 
             if (!_genGbufferCore.TryCreateRenderData(in context, out GenGbufferCore.RenderData gbufferRenderData))
             {
@@ -140,6 +144,26 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             _genLightAdditiveCore ??= new GenLightAdditiveCore();
             _genDenoiseLightingCore ??= new GenDenoiseLightingCore();
             _genComposeLightingCore ??= new GenComposeLightingCore();
+        }
+
+        private void ConfigureSampling()
+        {
+            Texture blueNoiseTexture = ResolveCurrentBlueNoiseFrame();
+            _genAoCore.ConfigureSampling(_samplingPattern, blueNoiseTexture);
+            _genSunLightCore.ConfigureSampling(_samplingPattern, blueNoiseTexture);
+            _genLocalLightCore.ConfigureSampling(_samplingPattern, blueNoiseTexture);
+        }
+
+        private Texture ResolveCurrentBlueNoiseFrame()
+        {
+            if (_samplingPattern != LightingSamplingPattern.BlueNoise || _blueNoiseFrames == null || _blueNoiseFrames.Length == 0)
+            {
+                return null;
+            }
+
+            int frameIndex = Mathf.Abs(Time.frameCount);
+            int textureIndex = frameIndex % _blueNoiseFrames.Length;
+            return _blueNoiseFrames[textureIndex];
         }
 
         protected override void OnPipelineDisposed()

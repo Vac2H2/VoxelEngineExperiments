@@ -48,3 +48,10 @@ Only lights that pass those tests cast an occlusion ray.
 `Point` and `Spot` stay deterministic single-sample lights. `Sphere` performs
 multi-sample surface sampling in the local-light shader and can therefore
 produce soft shadows and visible noise.
+
+## Sampling
+
+The stochastic sphere-light path can switch between:
+
+- hash-based sampling
+- blue-noise driven sampling

@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using VoxelRT.Runtime.Rendering.Lighting;
 using VoxelRT.Runtime.Rendering.RenderPipeline;
 using VoxelRT.Runtime.Rendering.VoxelRuntime;
 
@@ -27,8 +28,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         private static readonly int SunShadowDistanceId = Shader.PropertyToID("_SunShadowDistance");
         private static readonly int SunNormalBiasId = Shader.PropertyToID("_SunNormalBias");
         private static readonly int SunJitterRadiusId = Shader.PropertyToID("_SunJitterRadius");
+        private static readonly int LightingBlueNoiseTexId = Shader.PropertyToID("_LightingBlueNoiseTex");
 
         [SerializeField] private RayTracingShader _rayTracingShader;
+        [SerializeField] private RayTracingShader _blueNoiseRayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
         [SerializeField] private Vector3 _fallbackSunDirection = new(0.4f, 1.0f, 0.2f);
         [SerializeField] private Color _fallbackSunColor = Color.white;
@@ -36,6 +39,9 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         [SerializeField, Min(0.0f)] private float _normalBias = DefaultNormalBias;
         [SerializeField, Min(0.0f)] private float _jitterRadius = DefaultJitterRadius;
         [SerializeField] private GraphicsFormat _outputFormat = GraphicsFormat.B10G11R11_UFloatPack32;
+
+        [NonSerialized] private LightingSamplingPattern _samplingPattern;
+        [NonSerialized] private Texture _blueNoiseTexture;
         public readonly struct RenderData
         {
             public RenderData(
@@ -77,7 +83,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         {
             renderData = default;
 
-            if (_rayTracingShader == null || !SystemInfo.supportsRayTracing)
+            if (ResolveRayTracingShader() == null || !SystemInfo.supportsRayTracing)
             {
                 return false;
             }
@@ -116,16 +122,17 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 throw new ArgumentNullException(nameof(commandBuffer));
             }
 
+            RayTracingShader rayTracingShader = ResolveRayTracingShader();
             AllocateTemporaryTargets(commandBuffer, renderData.Width, renderData.Height);
 
-            renderData.Runtime.ResourceBinder.BindRayTracingShader(commandBuffer, _rayTracingShader);
-            commandBuffer.SetRayTracingShaderPass(_rayTracingShader, ResolveShaderPassName());
+            renderData.Runtime.ResourceBinder.BindRayTracingShader(commandBuffer, rayTracingShader);
+            commandBuffer.SetRayTracingShaderPass(rayTracingShader, ResolveShaderPassName());
             commandBuffer.SetRayTracingAccelerationStructure(
-                _rayTracingShader,
+                rayTracingShader,
                 RayTracingAccelerationStructureId,
                 renderData.Runtime.RayTracingScene.AccelerationStructure);
             commandBuffer.SetRayTracingMatrixParam(
-                _rayTracingShader,
+                rayTracingShader,
                 PixelCoordToViewDirWsId,
                 ComputePixelCoordToWorldSpaceViewDirectionMatrix(
                     renderData.Camera,
@@ -135,36 +142,43 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             Vector3 cameraPosition = renderData.Camera.transform.position;
             Vector3 cameraForward = renderData.Camera.transform.forward;
             commandBuffer.SetRayTracingVectorParam(
-                _rayTracingShader,
+                rayTracingShader,
                 CameraPositionWsId,
                 new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 0.0f));
             commandBuffer.SetRayTracingVectorParam(
-                _rayTracingShader,
+                rayTracingShader,
                 CameraForwardWsId,
                 new Vector4(cameraForward.x, cameraForward.y, cameraForward.z, 0.0f));
 
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, OpaqueInstanceMaskId, OpaqueInstanceMask);
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, SunFrameIndexId, Time.frameCount);
+            commandBuffer.SetRayTracingIntParam(rayTracingShader, OpaqueInstanceMaskId, OpaqueInstanceMask);
+            commandBuffer.SetRayTracingIntParam(rayTracingShader, SunFrameIndexId, Time.frameCount);
             commandBuffer.SetRayTracingVectorParam(
-                _rayTracingShader,
+                rayTracingShader,
                 SunDirectionWsId,
                 new Vector4(renderData.SunDirectionWs.x, renderData.SunDirectionWs.y, renderData.SunDirectionWs.z, 0.0f));
             commandBuffer.SetRayTracingVectorParam(
-                _rayTracingShader,
+                rayTracingShader,
                 SunColorId,
                 new Vector4(renderData.SunColor.x, renderData.SunColor.y, renderData.SunColor.z, 0.0f));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunShadowDistanceId, renderData.ShadowDistance);
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunNormalBiasId, Mathf.Max(_normalBias, 0.0f));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunJitterRadiusId, Mathf.Max(_jitterRadius, 0.0f));
+            commandBuffer.SetRayTracingFloatParam(rayTracingShader, SunShadowDistanceId, renderData.ShadowDistance);
+            commandBuffer.SetRayTracingFloatParam(rayTracingShader, SunNormalBiasId, Mathf.Max(_normalBias, 0.0f));
+            commandBuffer.SetRayTracingFloatParam(rayTracingShader, SunJitterRadiusId, Mathf.Max(_jitterRadius, 0.0f));
+            if (UsesBlueNoiseSampling())
+            {
+                commandBuffer.SetRayTracingTextureParam(
+                    rayTracingShader,
+                    LightingBlueNoiseTexId,
+                    _blueNoiseTexture != null ? _blueNoiseTexture : Texture2D.blackTexture);
+            }
 
-            BindInputTexture(commandBuffer, VoxelRtGbufferTexture.Normal);
-            BindInputTexture(commandBuffer, VoxelRtGbufferTexture.Depth);
+            BindInputTexture(commandBuffer, rayTracingShader, VoxelRtGbufferTexture.Normal);
+            BindInputTexture(commandBuffer, rayTracingShader, VoxelRtGbufferTexture.Depth);
             commandBuffer.SetRayTracingTextureParam(
-                _rayTracingShader,
+                rayTracingShader,
                 VoxelRtSunLightIds.SunLightTextureId,
                 VoxelRtSunLightIds.GetRenderTargetIdentifier());
             commandBuffer.DispatchRays(
-                _rayTracingShader,
+                rayTracingShader,
                 RayGenerationShaderName,
                 (uint)renderData.Width,
                 (uint)renderData.Height,
@@ -174,6 +188,12 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             commandBuffer.SetGlobalTexture(
                 VoxelRtSunLightIds.SunLightTextureId,
                 VoxelRtSunLightIds.GetRenderTargetIdentifier());
+        }
+
+        public void ConfigureSampling(LightingSamplingPattern samplingPattern, Texture blueNoiseTexture)
+        {
+            _samplingPattern = samplingPattern;
+            _blueNoiseTexture = blueNoiseTexture;
         }
 
         public void ReleaseTemporaryTargets(CommandBuffer commandBuffer)
@@ -186,12 +206,26 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             commandBuffer.ReleaseTemporaryRT(VoxelRtSunLightIds.SunLightTextureId);
         }
 
-        private void BindInputTexture(CommandBuffer commandBuffer, VoxelRtGbufferTexture texture)
+        private void BindInputTexture(CommandBuffer commandBuffer, RayTracingShader rayTracingShader, VoxelRtGbufferTexture texture)
         {
             commandBuffer.SetRayTracingTextureParam(
-                _rayTracingShader,
+                rayTracingShader,
                 VoxelRtGbufferIds.GetTextureId(texture),
                 VoxelRtGbufferIds.GetRenderTargetIdentifier(texture));
+        }
+
+        private RayTracingShader ResolveRayTracingShader()
+        {
+            return UsesBlueNoiseSampling()
+                ? _blueNoiseRayTracingShader
+                : _rayTracingShader;
+        }
+
+        private bool UsesBlueNoiseSampling()
+        {
+            return _samplingPattern == LightingSamplingPattern.BlueNoise &&
+                   _blueNoiseRayTracingShader != null &&
+                   _blueNoiseTexture != null;
         }
 
         private void AllocateTemporaryTargets(CommandBuffer commandBuffer, int width, int height)

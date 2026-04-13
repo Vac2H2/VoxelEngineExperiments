@@ -38,8 +38,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         private static readonly int LocalLightNormalBiasId = Shader.PropertyToID("_LocalLightNormalBias");
         private static readonly int LocalLightMinContributionId = Shader.PropertyToID("_LocalLightMinContribution");
         private static readonly int LocalLightBufferId = Shader.PropertyToID("_LocalLightBuffer");
+        private static readonly int LightingBlueNoiseTexId = Shader.PropertyToID("_LightingBlueNoiseTex");
 
         [SerializeField] private RayTracingShader _rayTracingShader;
+        [SerializeField] private RayTracingShader _blueNoiseRayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
         [SerializeField, Min(0)] private int _maxActiveLights = DefaultMaxActiveLights;
         [SerializeField, Min(1)] private int _sphereSampleCount = DefaultSphereSampleCount;
@@ -51,6 +53,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         [NonSerialized] private int _localLightBufferCapacity;
         [NonSerialized] private GpuLocalLightData[] _uploadCache = Array.Empty<GpuLocalLightData>();
         [NonSerialized] private List<CpuCandidateLocalLight> _candidateLights = new(DefaultMaxActiveLights);
+        [NonSerialized] private LightingSamplingPattern _samplingPattern;
+        [NonSerialized] private Texture _blueNoiseTexture;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct GpuLocalLightData
@@ -107,7 +111,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         {
             renderData = default;
 
-            if (_rayTracingShader == null || !SystemInfo.supportsRayTracing)
+            if (ResolveRayTracingShader() == null || !SystemInfo.supportsRayTracing)
             {
                 return false;
             }
@@ -144,16 +148,17 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 throw new ArgumentNullException(nameof(commandBuffer));
             }
 
+            RayTracingShader rayTracingShader = ResolveRayTracingShader();
             AllocateTemporaryTargets(commandBuffer, renderData.Width, renderData.Height);
 
-            renderData.Runtime.ResourceBinder.BindRayTracingShader(commandBuffer, _rayTracingShader);
-            commandBuffer.SetRayTracingShaderPass(_rayTracingShader, ResolveShaderPassName());
+            renderData.Runtime.ResourceBinder.BindRayTracingShader(commandBuffer, rayTracingShader);
+            commandBuffer.SetRayTracingShaderPass(rayTracingShader, ResolveShaderPassName());
             commandBuffer.SetRayTracingAccelerationStructure(
-                _rayTracingShader,
+                rayTracingShader,
                 RayTracingAccelerationStructureId,
                 renderData.Runtime.RayTracingScene.AccelerationStructure);
             commandBuffer.SetRayTracingMatrixParam(
-                _rayTracingShader,
+                rayTracingShader,
                 PixelCoordToViewDirWsId,
                 ComputePixelCoordToWorldSpaceViewDirectionMatrix(
                     renderData.Camera,
@@ -163,30 +168,37 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             Vector3 cameraPosition = renderData.Camera.transform.position;
             Vector3 cameraForward = renderData.Camera.transform.forward;
             commandBuffer.SetRayTracingVectorParam(
-                _rayTracingShader,
+                rayTracingShader,
                 CameraPositionWsId,
                 new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 0.0f));
             commandBuffer.SetRayTracingVectorParam(
-                _rayTracingShader,
+                rayTracingShader,
                 CameraForwardWsId,
                 new Vector4(cameraForward.x, cameraForward.y, cameraForward.z, 0.0f));
 
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, OpaqueInstanceMaskId, OpaqueInstanceMask);
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, LocalLightFrameIndexId, Time.frameCount);
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, LocalLightCountId, Mathf.Max(renderData.LightCount, 0));
-            commandBuffer.SetRayTracingIntParam(_rayTracingShader, LocalLightSphereSampleCountId, Mathf.Max(_sphereSampleCount, 1));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, LocalLightNormalBiasId, Mathf.Max(_normalBias, 0.0f));
-            commandBuffer.SetRayTracingFloatParam(_rayTracingShader, LocalLightMinContributionId, Mathf.Max(_minContribution, 0.0f));
-            commandBuffer.SetRayTracingBufferParam(_rayTracingShader, LocalLightBufferId, _localLightBuffer);
+            commandBuffer.SetRayTracingIntParam(rayTracingShader, OpaqueInstanceMaskId, OpaqueInstanceMask);
+            commandBuffer.SetRayTracingIntParam(rayTracingShader, LocalLightFrameIndexId, Time.frameCount);
+            commandBuffer.SetRayTracingIntParam(rayTracingShader, LocalLightCountId, Mathf.Max(renderData.LightCount, 0));
+            commandBuffer.SetRayTracingIntParam(rayTracingShader, LocalLightSphereSampleCountId, Mathf.Max(_sphereSampleCount, 1));
+            commandBuffer.SetRayTracingFloatParam(rayTracingShader, LocalLightNormalBiasId, Mathf.Max(_normalBias, 0.0f));
+            commandBuffer.SetRayTracingFloatParam(rayTracingShader, LocalLightMinContributionId, Mathf.Max(_minContribution, 0.0f));
+            commandBuffer.SetRayTracingBufferParam(rayTracingShader, LocalLightBufferId, _localLightBuffer);
+            if (UsesBlueNoiseSampling())
+            {
+                commandBuffer.SetRayTracingTextureParam(
+                    rayTracingShader,
+                    LightingBlueNoiseTexId,
+                    _blueNoiseTexture != null ? _blueNoiseTexture : Texture2D.blackTexture);
+            }
 
-            BindInputTexture(commandBuffer, VoxelRtGbufferTexture.Normal);
-            BindInputTexture(commandBuffer, VoxelRtGbufferTexture.Depth);
+            BindInputTexture(commandBuffer, rayTracingShader, VoxelRtGbufferTexture.Normal);
+            BindInputTexture(commandBuffer, rayTracingShader, VoxelRtGbufferTexture.Depth);
             commandBuffer.SetRayTracingTextureParam(
-                _rayTracingShader,
+                rayTracingShader,
                 VoxelRtLocalLightIds.LocalLightTextureId,
                 VoxelRtLocalLightIds.GetRenderTargetIdentifier());
             commandBuffer.DispatchRays(
-                _rayTracingShader,
+                rayTracingShader,
                 RayGenerationShaderName,
                 (uint)renderData.Width,
                 (uint)renderData.Height,
@@ -196,6 +208,12 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             commandBuffer.SetGlobalTexture(
                 VoxelRtLocalLightIds.LocalLightTextureId,
                 VoxelRtLocalLightIds.GetRenderTargetIdentifier());
+        }
+
+        public void ConfigureSampling(LightingSamplingPattern samplingPattern, Texture blueNoiseTexture)
+        {
+            _samplingPattern = samplingPattern;
+            _blueNoiseTexture = blueNoiseTexture;
         }
 
         public void ReleaseTemporaryTargets(CommandBuffer commandBuffer)
@@ -390,10 +408,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 FilterMode.Point);
         }
 
-        private void BindInputTexture(CommandBuffer commandBuffer, VoxelRtGbufferTexture texture)
+        private void BindInputTexture(CommandBuffer commandBuffer, RayTracingShader rayTracingShader, VoxelRtGbufferTexture texture)
         {
             commandBuffer.SetRayTracingTextureParam(
-                _rayTracingShader,
+                rayTracingShader,
                 VoxelRtGbufferIds.GetTextureId(texture),
                 VoxelRtGbufferIds.GetRenderTargetIdentifier(texture));
         }
@@ -403,6 +421,20 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             return string.IsNullOrWhiteSpace(_shaderPassName)
                 ? DefaultShaderPassName
                 : _shaderPassName;
+        }
+
+        private RayTracingShader ResolveRayTracingShader()
+        {
+            return UsesBlueNoiseSampling()
+                ? _blueNoiseRayTracingShader
+                : _rayTracingShader;
+        }
+
+        private bool UsesBlueNoiseSampling()
+        {
+            return _samplingPattern == LightingSamplingPattern.BlueNoise &&
+                   _blueNoiseRayTracingShader != null &&
+                   _blueNoiseTexture != null;
         }
 
         private GraphicsFormat ResolveOutputFormat()

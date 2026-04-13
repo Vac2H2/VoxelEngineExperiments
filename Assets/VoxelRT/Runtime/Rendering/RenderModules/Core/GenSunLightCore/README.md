@@ -35,3 +35,10 @@ and composition passes. The default RT format is
 `B10G11R11_UFloatPack32`, which keeps the sun-light target compact while still
 supporting HDR RGB output. Local lights follow the same split and write their
 own dedicated RT rather than accumulating into the sun-light target.
+
+## Sampling
+
+The owner module can switch the sun-shadow jitter path between:
+
+- hash-driven jitter
+- blue-noise driven jitter

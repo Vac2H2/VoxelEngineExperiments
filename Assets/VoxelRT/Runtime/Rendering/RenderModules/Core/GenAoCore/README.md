@@ -33,3 +33,10 @@ dedicated `_VoxelRtAo` texture instead of aliasing a shared lighting target.
 
 `GenAoCore` also exposes a `0..1` max ambient visibility control. The traced AO
 visibility is multiplied by that cap before being written into the AO RT.
+
+## Sampling
+
+The owner module can switch AO between:
+
+- hash-based pseudo-random sampling
+- blue-noise driven sampling

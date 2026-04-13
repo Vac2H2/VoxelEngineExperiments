@@ -1,0 +1,108 @@
+#pragma max_recursion_depth 1
+#pragma only_renderers d3d11
+
+#define VOXEL_LIGHTING_INCLUDE_HIT_SHADERS 0
+#define VOXEL_LIGHTING_USE_BLUE_NOISE 1
+#include "VoxelOccupancyProceduralLightingSunShared.hlsl"
+#include "../Shared/VoxelLightingSurfaceCommon.hlsl"
+#include "../Shared/VoxelLightingSamplingCommon.hlsl"
+
+RaytracingAccelerationStructure _RaytracingAccelerationStructure;
+
+uint _OpaqueInstanceMask;
+uint _SunFrameIndex;
+float3 _SunDirectionWS;
+float3 _SunColor;
+float _SunShadowDistance;
+float _SunNormalBias;
+float _SunJitterRadius;
+
+RWTexture2D<float4> _VoxelRtSunLight;
+
+static const float kSunSecondaryRayTMin = 1e-4;
+
+uint ResolveOpaqueInstanceMask()
+{
+    return _OpaqueInstanceMask == 0u ? 0x1u : _OpaqueInstanceMask;
+}
+
+float ResolveSunShadowDistance()
+{
+    return max(_SunShadowDistance, kSunSecondaryRayTMin);
+}
+
+float ResolveSunNormalBias()
+{
+    return _SunNormalBias <= 0.0 ? 0.05 : _SunNormalBias;
+}
+
+float ResolveSunJitterRadius()
+{
+    return _SunJitterRadius < 0.0 ? 0.0 : _SunJitterRadius;
+}
+
+SunPayload TraceSunRay(
+    RaytracingAccelerationStructure scene,
+    RayDesc ray,
+    uint instanceMask)
+{
+    SunPayload payload;
+    InitializeSunPayload(payload);
+
+    TraceRay(
+        scene,
+        RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
+        instanceMask,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    return payload;
+}
+
+[shader("raygeneration")]
+void RayGenMain()
+{
+    uint2 pixel = DispatchRaysIndex().xy;
+
+    float3 positionWS;
+    float3 normalWS;
+    float3 viewDirectionWS;
+    if (!TryLoadLightingSurface(pixel, positionWS, normalWS, viewDirectionWS))
+    {
+        _VoxelRtSunLight[pixel] = 0.0;
+        return;
+    }
+
+    float3 sunDirectionWS = normalize(_SunDirectionWS);
+    float sunLightVisibility = 0.0;
+
+    float ndotl = saturate(dot(normalWS, sunDirectionWS));
+    if (ndotl > 0.0)
+    {
+        float4 blueNoise = SampleLightingBlueNoise4(pixel, _SunFrameIndex);
+        uint rngState = MakeLightingSeedFromBlueNoise(blueNoise, _SunFrameIndex);
+        float3 jitterWS = SampleLightingJitterWS(normalWS, rngState, ResolveSunJitterRadius());
+
+        RayDesc ray;
+        ray.Origin = positionWS + (normalWS * ResolveSunNormalBias()) + jitterWS;
+        ray.Direction = sunDirectionWS;
+        ray.TMin = kSunSecondaryRayTMin;
+        ray.TMax = ResolveSunShadowDistance();
+
+        SunPayload payload = TraceSunRay(_RaytracingAccelerationStructure, ray, ResolveOpaqueInstanceMask());
+        float shadowVisibility = HasSunHit(payload) ? 0.0 : 1.0;
+        sunLightVisibility = ndotl * shadowVisibility;
+    }
+
+    float3 sunLighting = _SunColor * sunLightVisibility;
+    _VoxelRtSunLight[pixel] = float4(sunLighting, 0.0);
+}
+
+[shader("miss")]
+void MissMain(inout SunPayload payload : SV_RayPayload)
+{
+    InitializeSunPayload(payload);
+}

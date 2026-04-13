@@ -4,6 +4,14 @@
 static const float kLightingPi = 3.14159265359;
 static const float kLightingTau = 6.28318530718;
 
+#ifndef VOXEL_LIGHTING_USE_BLUE_NOISE
+    #define VOXEL_LIGHTING_USE_BLUE_NOISE 0
+#endif
+
+#if VOXEL_LIGHTING_USE_BLUE_NOISE
+Texture2D<float4> _LightingBlueNoiseTex;
+#endif
+
 uint HashLightingUint(uint value)
 {
     value ^= value >> 16;
@@ -67,14 +75,38 @@ float3 SampleLightingCosineHemisphere(float2 sampleUv)
     return float3(x, y, z);
 }
 
-float3 SampleLightingUnitSphere(inout uint state)
+float3 SampleLightingUnitSphere(float2 sampleUv)
 {
-    float2 sampleUv = NextLightingRandom02(state);
     float z = 1.0 - (2.0 * sampleUv.x);
     float r = sqrt(saturate(1.0 - (z * z)));
     float phi = kLightingTau * sampleUv.y;
     return float3(r * cos(phi), r * sin(phi), z);
 }
+
+float3 SampleLightingUnitSphere(inout uint state)
+{
+    float2 sampleUv = NextLightingRandom02(state);
+    return SampleLightingUnitSphere(sampleUv);
+}
+
+#if VOXEL_LIGHTING_USE_BLUE_NOISE
+float4 SampleLightingBlueNoise4(uint2 pixel, uint sampleIndex)
+{
+    uint2 wrapped = (pixel + uint2(sampleIndex * 29u, sampleIndex * 47u)) & 127u;
+    return saturate(_LightingBlueNoiseTex.Load(int3((int2)wrapped, 0)));
+}
+
+uint MakeLightingSeedFromBlueNoise(float4 blueNoiseSample, uint sampleIndex)
+{
+    uint4 packed = (uint4)round(blueNoiseSample * 255.0);
+    uint seed = packed.x;
+    seed |= packed.y << 8u;
+    seed |= packed.z << 16u;
+    seed |= packed.w << 24u;
+    seed = HashLightingUint(seed ^ (sampleIndex * 0x85ebca6bu));
+    return seed;
+}
+#endif
 
 float3 SampleLightingJitterWS(float3 normalWS, inout uint state, float radius)
 {

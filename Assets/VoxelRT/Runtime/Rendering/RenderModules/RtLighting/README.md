@@ -43,6 +43,23 @@ inside detachable cores.
 - `LightingAfterSpatial`
 - `FinalColor`
 
+## Sampling Pattern
+
+`RtLightingModule` exposes one shared stochastic sampling mode:
+
+- `Hash`
+- `BlueNoise`
+
+The module switches AO, Sun, and Local-light between separate ray tracing
+shader assets on the CPU side, so the choice does not add a runtime branch to
+those shaders.
+
+The current module asset is pre-wired to the 16-frame sequence under:
+
+- `../../../../Art/blue_noise/RGBA 128/`
+
+Those textures are consumed as linear data and sampled by integer texel fetch.
+
 `AO` preview reads the dedicated `_VoxelRtAo` scalar RT, then treats that value
 as ambient visibility and displays `white * visibility`, so open space stays
 bright and nearby occlusion darkens the preview.
