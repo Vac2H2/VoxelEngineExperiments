@@ -18,6 +18,8 @@ documentation stay together.
   encapsulates AO generation and its shared texture ID
 - `GenSunLightCore/`
   encapsulates simple directional sun-light generation and its shared texture ID
+- `GenLocalLightCore/`
+  encapsulates local-light candidate collection and local direct-light generation
 
 ## Design Rule
 

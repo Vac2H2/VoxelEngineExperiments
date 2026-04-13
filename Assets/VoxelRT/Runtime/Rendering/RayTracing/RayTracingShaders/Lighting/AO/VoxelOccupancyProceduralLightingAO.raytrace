@@ -16,7 +16,7 @@ float _AoMaxAmbientVisibility;
 float _AoNormalBias;
 float _AoJitterRadius;
 
-RWTexture2D<float> _VoxelRtLighting;
+RWTexture2D<float> _VoxelRtAo;
 
 static const uint kDefaultAoSampleCount = 2u;
 static const float kDefaultAoMaxDistance = 24.0;
@@ -92,7 +92,7 @@ void RayGenMain()
     float3 viewDirectionWS;
     if (!TryLoadLightingSurface(pixel, positionWS, normalWS, viewDirectionWS))
     {
-        _VoxelRtLighting[pixel] = 0.0;
+        _VoxelRtAo[pixel] = 0.0;
         return;
     }
 
@@ -123,7 +123,7 @@ void RayGenMain()
         visibility += EvaluateAoSampleVisibility(payload, maxDistance);
     }
 
-    _VoxelRtLighting[pixel] = maxAmbientVisibility * (visibility / sampleCount);
+    _VoxelRtAo[pixel] = maxAmbientVisibility * (visibility / sampleCount);
 }
 
 [shader("miss")]

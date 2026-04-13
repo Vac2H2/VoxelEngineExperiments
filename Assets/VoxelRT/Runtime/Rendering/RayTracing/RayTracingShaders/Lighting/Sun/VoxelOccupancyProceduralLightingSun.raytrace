@@ -11,11 +11,12 @@ RaytracingAccelerationStructure _RaytracingAccelerationStructure;
 uint _OpaqueInstanceMask;
 uint _SunFrameIndex;
 float3 _SunDirectionWS;
+float3 _SunColor;
 float _SunShadowDistance;
 float _SunNormalBias;
 float _SunJitterRadius;
 
-RWTexture2D<float> _VoxelRtLighting;
+RWTexture2D<float4> _VoxelRtSunLight;
 
 static const float kSunSecondaryRayTMin = 1e-4;
 
@@ -70,6 +71,7 @@ void RayGenMain()
     float3 viewDirectionWS;
     if (!TryLoadLightingSurface(pixel, positionWS, normalWS, viewDirectionWS))
     {
+        _VoxelRtSunLight[pixel] = 0.0;
         return;
     }
 
@@ -93,8 +95,8 @@ void RayGenMain()
         sunLightVisibility = ndotl * shadowVisibility;
     }
 
-    float lighting = _VoxelRtLighting[pixel];
-    _VoxelRtLighting[pixel] = lighting + sunLightVisibility;
+    float3 sunLighting = _SunColor * sunLightVisibility;
+    _VoxelRtSunLight[pixel] = float4(sunLighting, 0.0);
 }
 
 [shader("miss")]

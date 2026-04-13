@@ -6,7 +6,7 @@
 `Lighting` shader family.
 
 It traces cosine-weighted hemisphere rays from the visible GBuffer surface and
-outputs a scalar ambient visibility value into the shared lighting RT.
+outputs a scalar ambient visibility value into the dedicated AO RT.
 
 ## Behavior
 
@@ -21,7 +21,7 @@ instance-local space, AO will darken incorrectly as the instance rotates.
 
 ## Outputs
 
-- `_VoxelRtLighting`
+- `_VoxelRtAo`
   single-channel AO visibility after applying the configured ambient-visibility cap
 
 ## Integration Note

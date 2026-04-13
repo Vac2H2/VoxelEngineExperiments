@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: VoxelRenderPipelineAsset
   m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.RenderPipeline.VoxelRenderPipelineAsset
   _availableModules:
-  - {fileID: 11400000, guid: c84a3c47eb80ec04aa3dcab22a31743e, type: 2}
   - {fileID: 11400000, guid: ae224c8024774b2283149a9ecdc8a548, type: 2}
-  _selectedModule: {fileID: 11400000, guid: ae224c8024774b2283149a9ecdc8a548, type: 2}
+  - {fileID: 11400000, guid: ab42bc4d407147669def4257496f9727, type: 2}
+  _selectedModule: {fileID: 11400000, guid: ab42bc4d407147669def4257496f9727, type: 2}

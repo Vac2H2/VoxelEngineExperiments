@@ -6,21 +6,21 @@
 the `Lighting` shader family.
 
 It starts from the visible GBuffer surface and computes one shadow-tested
-directional-light factor.
+directional-light term.
 
 ## Behavior
 
 - reads `_VoxelRtNormal` and `_VoxelRtDepth`
-- reads the current shared lighting value written by AO
 - reconstructs the visible world-space surface point
 - traces one opaque-only shadow ray toward the sun direction
 - jitters the shadow-ray origin to approximate softer shadow edges
-- adds a single-channel directional-light term back into the shared lighting RT
+- multiplies shadow visibility by `NdotL` and the configured RGB sun color
+- writes the resulting HDR RGB directional-light term into its own RT
 
 ## Outputs
 
-- `_VoxelRtLighting`
-  single-channel lighting value containing `ao + NdotL * shadowVisibility`
+- `_VoxelRtSunLight`
+  HDR RGB sunlight containing `sunColor * NdotL * shadowVisibility`
 
 ## Integration Note
 

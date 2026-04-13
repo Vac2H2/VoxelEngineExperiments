@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using VoxelRT.Runtime.Rendering.RenderPipeline;
 using VoxelRT.Runtime.Rendering.VoxelRuntime;
@@ -22,6 +23,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         private static readonly int OpaqueInstanceMaskId = Shader.PropertyToID("_OpaqueInstanceMask");
         private static readonly int SunFrameIndexId = Shader.PropertyToID("_SunFrameIndex");
         private static readonly int SunDirectionWsId = Shader.PropertyToID("_SunDirectionWS");
+        private static readonly int SunColorId = Shader.PropertyToID("_SunColor");
         private static readonly int SunShadowDistanceId = Shader.PropertyToID("_SunShadowDistance");
         private static readonly int SunNormalBiasId = Shader.PropertyToID("_SunNormalBias");
         private static readonly int SunJitterRadiusId = Shader.PropertyToID("_SunJitterRadius");
@@ -29,9 +31,11 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
         [SerializeField] private RayTracingShader _rayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
         [SerializeField] private Vector3 _fallbackSunDirection = new(0.4f, 1.0f, 0.2f);
+        [SerializeField] private Color _fallbackSunColor = Color.white;
         [SerializeField, Min(0.0f)] private float _shadowDistance;
         [SerializeField, Min(0.0f)] private float _normalBias = DefaultNormalBias;
         [SerializeField, Min(0.0f)] private float _jitterRadius = DefaultJitterRadius;
+        [SerializeField] private GraphicsFormat _outputFormat = GraphicsFormat.B10G11R11_UFloatPack32;
         public readonly struct RenderData
         {
             public RenderData(
@@ -40,6 +44,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 int width,
                 int height,
                 Vector3 sunDirectionWs,
+                Vector3 sunColor,
                 float shadowDistance)
             {
                 Runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
@@ -47,6 +52,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 Width = width;
                 Height = height;
                 SunDirectionWs = sunDirectionWs;
+                SunColor = sunColor;
                 ShadowDistance = shadowDistance;
             }
 
@@ -59,6 +65,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             public int Height { get; }
 
             public Vector3 SunDirectionWs { get; }
+
+            public Vector3 SunColor { get; }
 
             public float ShadowDistance { get; }
         }
@@ -87,13 +95,14 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 return false;
             }
 
-            ResolveSun(camera, out Vector3 sunDirectionWs, out float shadowDistance);
+            ResolveSun(camera, out Vector3 sunDirectionWs, out Vector3 sunColor, out float shadowDistance);
             renderData = new RenderData(
                 bootstrap.Runtime,
                 camera,
                 width,
                 height,
                 sunDirectionWs,
+                sunColor,
                 shadowDistance);
             return true;
         }
@@ -106,6 +115,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             {
                 throw new ArgumentNullException(nameof(commandBuffer));
             }
+
+            AllocateTemporaryTargets(commandBuffer, renderData.Width, renderData.Height);
 
             renderData.Runtime.ResourceBinder.BindRayTracingShader(commandBuffer, _rayTracingShader);
             commandBuffer.SetRayTracingShaderPass(_rayTracingShader, ResolveShaderPassName());
@@ -138,6 +149,10 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 _rayTracingShader,
                 SunDirectionWsId,
                 new Vector4(renderData.SunDirectionWs.x, renderData.SunDirectionWs.y, renderData.SunDirectionWs.z, 0.0f));
+            commandBuffer.SetRayTracingVectorParam(
+                _rayTracingShader,
+                SunColorId,
+                new Vector4(renderData.SunColor.x, renderData.SunColor.y, renderData.SunColor.z, 0.0f));
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunShadowDistanceId, renderData.ShadowDistance);
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunNormalBiasId, Mathf.Max(_normalBias, 0.0f));
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, SunJitterRadiusId, Mathf.Max(_jitterRadius, 0.0f));
@@ -167,6 +182,8 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             {
                 throw new ArgumentNullException(nameof(commandBuffer));
             }
+
+            commandBuffer.ReleaseTemporaryRT(VoxelRtSunLightIds.SunLightTextureId);
         }
 
         private void BindInputTexture(CommandBuffer commandBuffer, VoxelRtGbufferTexture texture)
@@ -177,19 +194,32 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
                 VoxelRtGbufferIds.GetRenderTargetIdentifier(texture));
         }
 
+        private void AllocateTemporaryTargets(CommandBuffer commandBuffer, int width, int height)
+        {
+            commandBuffer.GetTemporaryRT(
+                VoxelRtSunLightIds.SunLightTextureId,
+                CreateTextureDescriptor(width, height, ResolveOutputFormat()),
+                FilterMode.Point);
+        }
+
         private void ResolveSun(
             Camera camera,
             out Vector3 sunDirectionWs,
+            out Vector3 sunColor,
             out float shadowDistance)
         {
             Light sunLight = RenderSettings.sun;
             if (sunLight != null)
             {
                 sunDirectionWs = NormalizeOrFallback(-sunLight.transform.forward, Vector3.up);
+                Color linearColor = sunLight.color.linear;
+                sunColor = new Vector3(linearColor.r, linearColor.g, linearColor.b) * Mathf.Max(sunLight.intensity, 0.0f);
             }
             else
             {
                 sunDirectionWs = NormalizeOrFallback(_fallbackSunDirection, Vector3.up);
+                Color linearColor = _fallbackSunColor.linear;
+                sunColor = new Vector3(linearColor.r, linearColor.g, linearColor.b);
             }
 
             float resolvedShadowDistance = _shadowDistance <= 0.0f
@@ -210,6 +240,30 @@ namespace VoxelRT.Runtime.Rendering.RenderModules.Core
             return value.sqrMagnitude > 1e-8f
                 ? value.normalized
                 : fallback.normalized;
+        }
+
+        private GraphicsFormat ResolveOutputFormat()
+        {
+            return _outputFormat == GraphicsFormat.None
+                ? GraphicsFormat.B10G11R11_UFloatPack32
+                : _outputFormat;
+        }
+
+        private static RenderTextureDescriptor CreateTextureDescriptor(
+            int width,
+            int height,
+            GraphicsFormat graphicsFormat)
+        {
+            return new RenderTextureDescriptor(width, height)
+            {
+                dimension = TextureDimension.Tex2D,
+                depthBufferBits = 0,
+                msaaSamples = 1,
+                graphicsFormat = graphicsFormat,
+                enableRandomWrite = true,
+                useMipMap = false,
+                autoGenerateMips = false
+            };
         }
 
         private static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(Camera camera, int width, int height)

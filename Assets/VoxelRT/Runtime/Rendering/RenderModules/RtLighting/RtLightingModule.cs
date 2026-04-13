@@ -16,6 +16,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
         [SerializeField] private GenGbufferCore _genGbufferCore = new();
         [SerializeField] private GenAoCore _genAoCore = new();
         [SerializeField] private GenSunLightCore _genSunLightCore = new();
+        [SerializeField] private GenLocalLightCore _genLocalLightCore = new();
         [SerializeField] private Material _aoPreviewMaterial;
         [SerializeField] private PreviewTarget _previewTarget = PreviewTarget.Ao;
 
@@ -27,6 +28,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             Normal = 3,
             Depth = 4,
             SurfaceInfo = 5,
+            LocalLight = 6,
         }
 
         protected override bool OnRender(in VoxelRenderPipelineCameraContext context)
@@ -48,6 +50,11 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 return false;
             }
 
+            if (!_genLocalLightCore.TryCreateRenderData(in context, out GenLocalLightCore.RenderData localLightRenderData))
+            {
+                return false;
+            }
+
             Camera camera = gbufferRenderData.Camera;
             ScriptableRenderContext renderContext = context.RenderContext;
             CommandBuffer commandBuffer = new()
@@ -62,7 +69,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 _genAoCore.RecordAoFill(commandBuffer, in aoRenderData);
                 CaptureScalarStagePreviewIfRequested(commandBuffer, gbufferRenderData.Width, gbufferRenderData.Height, PreviewTarget.Ao);
                 _genSunLightCore.RecordSunLightFill(commandBuffer, in sunLightRenderData);
-                CaptureScalarStagePreviewIfRequested(commandBuffer, gbufferRenderData.Width, gbufferRenderData.Height, PreviewTarget.SunLight);
+                _genLocalLightCore.RecordLocalLightFill(commandBuffer, in localLightRenderData);
                 renderContext.ExecuteCommandBuffer(commandBuffer);
                 commandBuffer.Clear();
 
@@ -75,6 +82,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
                 }
 
                 ReleasePreviewTargets(commandBuffer);
+                _genLocalLightCore.ReleaseTemporaryTargets(commandBuffer);
                 _genSunLightCore.ReleaseTemporaryTargets(commandBuffer);
                 _genAoCore.ReleaseTemporaryTargets(commandBuffer);
                 _genGbufferCore.ReleaseTemporaryTargets(commandBuffer);
@@ -100,6 +108,12 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             _genGbufferCore ??= new GenGbufferCore();
             _genAoCore ??= new GenAoCore();
             _genSunLightCore ??= new GenSunLightCore();
+            _genLocalLightCore ??= new GenLocalLightCore();
+        }
+
+        protected override void OnPipelineDisposed()
+        {
+            _genLocalLightCore?.Dispose();
         }
 
         private void RecordPreview(CommandBuffer commandBuffer, int width, int height)
@@ -141,8 +155,7 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
 
         private bool UsesScalarPreview()
         {
-            return _previewTarget == PreviewTarget.Ao
-                || _previewTarget == PreviewTarget.SunLight;
+            return _previewTarget == PreviewTarget.Ao;
         }
 
         private void CaptureScalarStagePreviewIfRequested(
@@ -157,15 +170,21 @@ namespace VoxelRT.Runtime.Rendering.RenderModules
             }
 
             AllocateScalarPreviewTarget(commandBuffer, width, height);
-            commandBuffer.Blit(VoxelRtAoIds.GetRenderTargetIdentifier(), ScalarPreviewTextureId, _aoPreviewMaterial);
+            commandBuffer.Blit(ResolvePreviewSource(stage), ScalarPreviewTextureId, _aoPreviewMaterial);
             commandBuffer.SetGlobalTexture(ScalarPreviewTextureId, new RenderTargetIdentifier(ScalarPreviewTextureId));
         }
 
         private RenderTargetIdentifier ResolvePreviewSource()
         {
-            return _previewTarget switch
+            return ResolvePreviewSource(_previewTarget);
+        }
+
+        private static RenderTargetIdentifier ResolvePreviewSource(PreviewTarget previewTarget)
+        {
+            return previewTarget switch
             {
                 PreviewTarget.SunLight => VoxelRtSunLightIds.GetRenderTargetIdentifier(),
+                PreviewTarget.LocalLight => VoxelRtLocalLightIds.GetRenderTargetIdentifier(),
                 PreviewTarget.Albedo => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Albedo),
                 PreviewTarget.Normal => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Normal),
                 PreviewTarget.Depth => VoxelRtGbufferIds.GetRenderTargetIdentifier(VoxelRtGbufferTexture.Depth),

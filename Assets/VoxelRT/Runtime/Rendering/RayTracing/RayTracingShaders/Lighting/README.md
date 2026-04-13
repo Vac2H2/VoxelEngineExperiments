@@ -13,6 +13,8 @@ generated GBuffer.
   ambient-occlusion pass assets and pass-local helpers
 - `Sun/`
   directional sun-light pass assets and pass-local helpers
+- `Local/`
+  local direct-light pass assets and pass-local helpers
 
 ## Design Rule
 
@@ -32,6 +34,17 @@ shader used by `VoxelRenderer`. At the moment that shared shader is still the
 ## Current Passes
 
 - `AO/`
-  hemisphere-traced ambient occlusion initializing the shared scalar lighting RT
+  hemisphere-traced ambient occlusion writing a dedicated scalar AO RT
 - `Sun/`
-  shadow-tested directional sunlight accumulated into the same scalar lighting RT
+  shadow-tested directional sunlight writing a dedicated HDR RGB sun-light RT
+- `Local/`
+  shadow-tested point and spot lights writing a dedicated HDR RGB local-light RT
+
+The passes are intentionally split by signal type:
+
+- ambient visibility stays in AO
+- direct directional light stays in Sun
+- direct local light stays in Local
+
+That separation keeps future local-light work additive and avoids overloading a
+single lighting RT with unrelated semantics.

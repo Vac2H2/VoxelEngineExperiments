@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.RenderModules.RtGbufferModule
   _isEnabled: 1
   _submodules: []
-  _rayTracingShader: {fileID: 4807578003741378534, guid: f9602a2d7bc844738bd0298f96857dc4, type: 3}
-  _shaderPassName: VoxelOccupancyDXR
+  _genGbufferCore:
+    _rayTracingShader: {fileID: 4807578003741378534, guid: f9602a2d7bc844738bd0298f96857dc4, type: 3}
+    _shaderPassName: VoxelOccupancyDXR
   _previewTarget: 0
+  _legacyRayTracingShader: {fileID: 4807578003741378534, guid: f9602a2d7bc844738bd0298f96857dc4, type: 3}
+  _legacyShaderPassName: VoxelOccupancyDXR

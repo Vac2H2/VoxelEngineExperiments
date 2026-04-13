@@ -24,6 +24,7 @@ RTAS hit-stage passes:
 - `VoxelOccupancyDXR`
 - `VoxelLightingAO`
 - `VoxelLightingSun`
+- `VoxelLightingLocal`
 
 ## Payload Contract
 
