@@ -18,7 +18,11 @@ The `RtGbuffer` render module expects voxel instances to use the material asset:
 
 - `VoxelOccupancyProceduralGbuffer.mat`
 
-That material provides the `VoxelOccupancyDXR` pass used by the RTAS hit stage.
+That material is the current shared voxel surface material and provides these
+RTAS hit-stage passes:
+
+- `VoxelOccupancyDXR`
+- `VoxelLightingAO`
 
 ## Payload Contract
 

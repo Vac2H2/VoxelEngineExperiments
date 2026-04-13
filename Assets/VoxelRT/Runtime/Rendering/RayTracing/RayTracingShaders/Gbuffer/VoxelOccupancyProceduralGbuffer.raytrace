@@ -15,9 +15,9 @@ float _RayTMax;
 uint _AllInstanceMask;
 uint _OpaqueInstanceMask;
 
-RWTexture2D<float4> _VoxelRtGBuffer0;
-RWTexture2D<float4> _VoxelRtGBuffer1;
-RWTexture2D<float> _VoxelRtGBuffer2;
+RWTexture2D<float4> _VoxelRtAlbedo;
+RWTexture2D<float4> _VoxelRtNormal;
+RWTexture2D<float> _VoxelRtDepth;
 RWTexture2D<float4> _VoxelRtSurfaceInfo;
 
 static const float kSecondaryRayTOffset = 1e-4;
@@ -102,9 +102,9 @@ void RayGenMain()
             _OpaqueInstanceMask);
     }
 
-    float4 gbuffer0 = 0.0;
-    float4 gbuffer1 = 0.0;
-    float gbuffer2 = 0.0;
+    float4 albedo = 0.0;
+    float4 normal = 0.0;
+    float depth = 0.0;
     float4 surfaceInfo = 0.0;
 
     if (HasHit(visiblePayload))
@@ -115,15 +115,15 @@ void RayGenMain()
             visiblePayload.paletteEntryIndex);
         uint surfaceType = DecodeSurfaceType(packedPaletteEntry);
 
-        gbuffer0 = DecodeAlbedoOutput(packedPaletteEntry);
-        gbuffer1 = DecodeNormalOutput(DecodeFaceId(packedNormalAndPaletteId));
-        gbuffer2 = ComputeLinearViewDepth(visiblePayload.hitT, ray.Direction);
+        albedo = DecodeAlbedoOutput(packedPaletteEntry);
+        normal = DecodeNormalOutput(DecodeFaceId(packedNormalAndPaletteId));
+        depth = ComputeLinearViewDepth(visiblePayload.hitT, ray.Direction);
         surfaceInfo = UnpackRgba8Unorm(ReadSurfaceInfoEntry(surfaceType));
     }
 
-    _VoxelRtGBuffer0[pixel] = gbuffer0;
-    _VoxelRtGBuffer1[pixel] = gbuffer1;
-    _VoxelRtGBuffer2[pixel] = gbuffer2;
+    _VoxelRtAlbedo[pixel] = albedo;
+    _VoxelRtNormal[pixel] = normal;
+    _VoxelRtDepth[pixel] = depth;
     _VoxelRtSurfaceInfo[pixel] = surfaceInfo;
 }
 

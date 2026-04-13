@@ -2,13 +2,17 @@
 
 ## Purpose
 
-`RtGbufferModule` renders the voxel ray-traced GBuffer set for the active camera.
+`RtGbufferModule` renders the voxel ray-traced GBuffer set for the active
+camera.
+
+The actual GBuffer generation is delegated to `../Core/GenGbufferCore/`, so
+this module stays focused on camera-facing orchestration, preview, and
+submodule lifetime.
 
 It is responsible for:
 
-- dispatching the `Gbuffer` ray tracing shader family
-- allocating the full temporary GBuffer set for the camera
-- exposing those temporary textures as globals for the rest of the camera render
+- invoking the shared GBuffer generation core
+- keeping the generated GBuffer textures alive while submodules render
 - previewing one selected GBuffer target to the camera target when no submodule takes over
 
 It is not responsible for:
@@ -21,9 +25,9 @@ It is not responsible for:
 
 The module writes these temporary global textures:
 
-- `_VoxelRtGBuffer0`
-- `_VoxelRtGBuffer1`
-- `_VoxelRtGBuffer2`
+- `_VoxelRtAlbedo`
+- `_VoxelRtNormal`
+- `_VoxelRtDepth`
 - `_VoxelRtSurfaceInfo`
 
 Their layout matches the `Gbuffer` shader family contract:

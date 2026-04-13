@@ -151,8 +151,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelRenderer
   _voxelFilter: {fileID: 15439782}
   _bootstrap: {fileID: 144486985}
-  _material: {fileID: 2100000, guid: 40cb113562914b118cf80904bcca2419, type: 2}
-  _opaqueMaterial: 1
+  _material: {fileID: 2100000, guid: 2b0d89b0dbe7428ab417bc62e3cd0f88, type: 2}
+  _opaqueMaterial: 0
   _dynamicGeometry: 0
   _overrideBuildFlags: 0
   _buildFlags: 1
@@ -486,7 +486,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1142443395
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -501,7 +501,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelRenderer
   _voxelFilter: {fileID: 1142443396}
   _bootstrap: {fileID: 144486985}
-  _material: {fileID: 2100000, guid: 40cb113562914b118cf80904bcca2419, type: 2}
+  _material: {fileID: 2100000, guid: 2b0d89b0dbe7428ab417bc62e3cd0f88, type: 2}
   _opaqueMaterial: 1
   _dynamicGeometry: 0
   _overrideBuildFlags: 0
