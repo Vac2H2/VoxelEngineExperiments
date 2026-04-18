@@ -1,0 +1,133 @@
+#pragma max_recursion_depth 1
+#pragma only_renderers d3d11
+
+#define VOXEL_LIGHTING_INCLUDE_HIT_SHADERS 0
+#include "VoxelOccupancyProceduralLightingAOShared.hlsl"
+#include "../Shared/VoxelLightingSurfaceCommon.hlsl"
+#include "../Shared/VoxelLightingSamplingCommon.hlsl"
+
+RaytracingAccelerationStructure _RaytracingAccelerationStructure;
+
+uint _OpaqueInstanceMask;
+uint _AoFrameIndex;
+uint _AoSampleCount;
+float _AoMaxDistance;
+float _AoMaxAmbientVisibility;
+float _AoNormalBias;
+float _AoJitterRadius;
+
+RWTexture2D<float> _VoxelExperimentsAo;
+
+static const uint kDefaultAoSampleCount = 2u;
+static const float kDefaultAoMaxDistance = 24.0;
+static const float kDefaultAoNormalBias = 0.05;
+static const float kDefaultAoJitterRadius = 0.025;
+static const float kAoSecondaryRayTMin = 1e-4;
+
+uint ResolveOpaqueInstanceMask()
+{
+    return _OpaqueInstanceMask == 0u ? 0x1u : _OpaqueInstanceMask;
+}
+
+uint ResolveAoSampleCount()
+{
+    return _AoSampleCount == 0u ? kDefaultAoSampleCount : _AoSampleCount;
+}
+
+float ResolveAoMaxDistance()
+{
+    return _AoMaxDistance <= 0.0 ? kDefaultAoMaxDistance : _AoMaxDistance;
+}
+
+float ResolveAoMaxAmbientVisibility()
+{
+    return saturate(_AoMaxAmbientVisibility);
+}
+
+float ResolveAoNormalBias()
+{
+    return _AoNormalBias <= 0.0 ? kDefaultAoNormalBias : _AoNormalBias;
+}
+
+float ResolveAoJitterRadius()
+{
+    return _AoJitterRadius < 0.0 ? 0.0 : (_AoJitterRadius == 0.0 ? kDefaultAoJitterRadius : _AoJitterRadius);
+}
+
+AoPayload TraceAoRay(
+    RaytracingAccelerationStructure scene,
+    RayDesc ray,
+    uint instanceMask)
+{
+    AoPayload payload;
+    InitializeAoPayload(payload);
+
+    TraceRay(
+        scene,
+        RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
+        instanceMask,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    return payload;
+}
+
+float EvaluateAoSampleVisibility(AoPayload payload, float maxDistance)
+{
+    return HasAoHit(payload)
+        ? saturate(payload.hitT / maxDistance)
+        : 1.0;
+}
+
+[shader("raygeneration")]
+void RayGenMain()
+{
+    uint2 pixel = DispatchRaysIndex().xy;
+
+    float3 positionWS;
+    float3 normalWS;
+    float3 viewDirectionWS;
+    if (!TryLoadLightingSurface(pixel, positionWS, normalWS, viewDirectionWS))
+    {
+        _VoxelExperimentsAo[pixel] = 0.0;
+        return;
+    }
+
+    uint sampleCount = ResolveAoSampleCount();
+    float maxDistance = ResolveAoMaxDistance();
+    float maxAmbientVisibility = ResolveAoMaxAmbientVisibility();
+    float normalBias = ResolveAoNormalBias();
+    float jitterRadius = ResolveAoJitterRadius();
+    uint instanceMask = ResolveOpaqueInstanceMask();
+
+    float visibility = 0.0;
+
+    [loop]
+    for (uint sampleIndex = 0u; sampleIndex < sampleCount; sampleIndex++)
+    {
+        uint rngState = MakeLightingSeed(pixel, sampleIndex, _AoFrameIndex);
+        float3 localDirection = SampleLightingCosineHemisphere(NextLightingRandom02(rngState));
+        float3 directionWS = normalize(TransformLightingDirectionToWorld(localDirection, normalWS));
+        float3 jitterWS = SampleLightingJitterWS(normalWS, rngState, jitterRadius);
+
+        RayDesc ray;
+        ray.Origin = positionWS + (normalWS * normalBias) + jitterWS;
+        ray.Direction = directionWS;
+        ray.TMin = kAoSecondaryRayTMin;
+        ray.TMax = maxDistance;
+
+        AoPayload payload = TraceAoRay(_RaytracingAccelerationStructure, ray, instanceMask);
+        visibility += EvaluateAoSampleVisibility(payload, maxDistance);
+    }
+
+    _VoxelExperimentsAo[pixel] = maxAmbientVisibility * (visibility / sampleCount);
+}
+
+[shader("miss")]
+void MissMain(inout AoPayload payload : SV_RayPayload)
+{
+    InitializeAoPayload(payload);
+}

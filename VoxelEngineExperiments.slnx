@@ -1,4 +1,5 @@
 ﻿<Solution>
-  <Project Path="VoxelRT.Runtime.csproj" />
-  <Project Path="VoxelRT.Editor.csproj" />
+  <Project Path="VoxelExperiments.Runtime.csproj" />
+  <Project Path="VoxelExperiments.Editor.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
 </Solution>

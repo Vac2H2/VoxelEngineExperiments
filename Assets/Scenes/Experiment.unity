@@ -136,7 +136,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &15439781
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -148,7 +148,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 860a88caad534e36a31a2079421d7b19, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelRenderer
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.VoxelRenderer.VoxelRenderer
   _voxelFilter: {fileID: 15439782}
   _bootstrap: {fileID: 144486985}
   _material: {fileID: 2100000, guid: 2b0d89b0dbe7428ab417bc62e3cd0f88, type: 2}
@@ -167,7 +167,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d09b92a0a1e49a0bcaaea474c5e4e39, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelFilter
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.VoxelRenderer.VoxelFilter
   _model: {fileID: 11400000, guid: 75a4590e49b5e7b479b054b5126bd6d6, type: 2}
   _palette: {fileID: 11400000, guid: 173891885e045ab44b5da964d5031a28, type: 2}
 --- !u!4 &15439783
@@ -213,7 +213,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd72f31fbe4f48f0a56186f966ded284, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRuntime.VoxelRuntimeBootstrap
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.VoxelRuntime.VoxelRuntimeBootstrap
   _autoBuildScene: 1
   _autoBindGlobals: 1
 --- !u!4 &144486986
@@ -247,7 +247,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &160764182
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -259,7 +259,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c4d5ad4462492c8ee0fdd181e7b873, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.Lighting.VoxelLocalLight
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.Lighting.VoxelLocalLight
   _shape: 2
   _color: {r: 1, g: 1, b: 1, a: 1}
   _intensity: 1
@@ -408,7 +408,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d09b7d2b3d0449448be18ad4055c1f14, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Tools.VoxelLayoutToggleController
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Tools.VoxelLayoutToggleController
   _linearRoot: {fileID: 15439780}
   _octantRoot: {fileID: 1539583372}
   _startWithLinear: 1
@@ -514,8 +514,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.3502356, y: -0.5289163, z: 0.2538268, w: -0.7301743}
-  m_LocalPosition: {x: -1.9695061, y: 2.7296393, z: -0.12750429}
+  m_LocalRotation: {x: -0.16668302, y: 0.5054949, z: -0.09940917, w: -0.8407197}
+  m_LocalPosition: {x: -235.89478, y: 446.90872, z: -1789.2614}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -538,7 +538,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1142443395
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -550,7 +550,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 860a88caad534e36a31a2079421d7b19, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelRenderer
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.VoxelRenderer.VoxelRenderer
   _voxelFilter: {fileID: 1142443396}
   _bootstrap: {fileID: 144486985}
   _material: {fileID: 2100000, guid: 2b0d89b0dbe7428ab417bc62e3cd0f88, type: 2}
@@ -569,7 +569,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d09b92a0a1e49a0bcaaea474c5e4e39, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelFilter
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.VoxelRenderer.VoxelFilter
   _model: {fileID: 11400000, guid: 75a4590e49b5e7b479b054b5126bd6d6, type: 2}
   _palette: {fileID: 11400000, guid: 173891885e045ab44b5da964d5031a28, type: 2}
 --- !u!4 &1142443397
@@ -616,7 +616,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 860a88caad534e36a31a2079421d7b19, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelRenderer
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.VoxelRenderer.VoxelRenderer
   _voxelFilter: {fileID: 1539583374}
   _bootstrap: {fileID: 144486985}
   _material: {fileID: 2100000, guid: 5dba7d689fd943f5ad4e29a9d4e2d882, type: 2}
@@ -635,7 +635,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d09b92a0a1e49a0bcaaea474c5e4e39, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: VoxelRT.Runtime::VoxelRT.Runtime.Rendering.VoxelRenderer.VoxelFilter
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.VoxelRenderer.VoxelFilter
   _model: {fileID: 11400000, guid: a3c32dcdd13e78f499e1513f513f80c8, type: 2}
   _palette: {fileID: 11400000, guid: 173891885e045ab44b5da964d5031a28, type: 2}
 --- !u!4 &1539583375
@@ -653,6 +653,63 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &2101699038
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -606.3113
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.00001
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1439.0082
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2126146144089589885, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7944411451221883732, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
+      propertyPath: m_Name
+      value: castle
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 35743479a2fe5224ca12568f19c07d95, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -665,3 +722,4 @@ SceneRoots:
   - {fileID: 1539583375}
   - {fileID: 906164090}
   - {fileID: 160764183}
+  - {fileID: 2101699038}

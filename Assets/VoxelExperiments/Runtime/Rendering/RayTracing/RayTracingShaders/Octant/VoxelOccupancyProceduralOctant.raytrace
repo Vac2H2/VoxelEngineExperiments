@@ -1,0 +1,134 @@
+#pragma max_recursion_depth 1
+#pragma only_renderers d3d11
+
+#define RTAS_OCCUPANCY_SEPARATE_TRANSPARENT 1
+#define VOXEL_OCCUPANCY_INCLUDE_HIT_SHADERS 0
+#include "VoxelOccupancyProceduralOctantShared.hlsl"
+
+RaytracingAccelerationStructure _RaytracingAccelerationStructure;
+
+float4x4 _PixelCoordToViewDirWS;
+float3 _CameraPositionWS;
+float3 _CameraForwardWS;
+float _RayTMin;
+float _RayTMax;
+uint _AllInstanceMask;
+uint _OpaqueInstanceMask;
+
+RWTexture2D<float4> _Output;
+
+static const float kSecondaryRayTOffset = 1e-4;
+
+bool IsTransparentHit(RayPayload payload)
+{
+    return (payload.flags & kRayPayloadFlagTransparentHit) != 0u;
+}
+
+float3 SrgbToLinear(float3 srgb)
+{
+    float3 low = srgb / 12.92;
+    float3 high = pow(max((srgb + 0.055) / 1.055, 0.0), 2.4);
+    return lerp(high, low, step(srgb, 0.04045));
+}
+
+float3 EvaluateSimpleSky(float3 rayDirectionWS)
+{
+    float upFactor = saturate((rayDirectionWS.y * 0.5) + 0.5);
+    float groundFactor = saturate(-rayDirectionWS.y);
+    float horizonGlow = pow(saturate(1.0 - abs(rayDirectionWS.y)), 6.0);
+
+    float3 horizonColor = SrgbToLinear(float3(0.90, 0.94, 1.00));
+    float3 zenithColor = SrgbToLinear(float3(0.30, 0.52, 0.86));
+    float3 groundColor = SrgbToLinear(float3(0.14, 0.16, 0.20));
+    float3 sunsetGlowColor = SrgbToLinear(float3(1.00, 0.78, 0.55));
+
+    float3 skyColor = lerp(horizonColor, zenithColor, upFactor * upFactor);
+    skyColor += sunsetGlowColor * (0.12 * horizonGlow);
+    return lerp(skyColor, groundColor, groundFactor * 0.85);
+}
+
+float3 ShadePayload(RayPayload payload)
+{
+    uint faceId = DecodeFaceId(payload.packedNormalAndPaletteId);
+    float3 normal = DecodeFaceNormal(faceId);
+    float3 normalCalibrated = normal * 0.5 + 0.5;
+    float3 lightDir = normalize(float3(0.48, 0.75, 0.46));
+    float lighting = 0.35 + 0.65 * saturate(dot(normal, lightDir));
+    return lerp(1.0.xxx, normalCalibrated, 0.35) * lighting;
+}
+
+RayPayload TraceScene(
+    RaytracingAccelerationStructure scene,
+    RayDesc ray,
+    uint layerMask)
+{
+    RayPayload payload;
+    payload.hit = 0u;
+    payload.hitT = 0.0;
+    payload.packedNormalAndPaletteId = 0u;
+    payload.flags = 0u;
+
+    TraceRay(
+        scene,
+        RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
+        layerMask,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    return payload;
+}
+
+[shader("raygeneration")]
+void RayGenMain()
+{
+    uint3 launchIndex = DispatchRaysIndex();
+    uint2 pixel = launchIndex.xy;
+
+    RayDesc ray;
+    ray.Origin = _CameraPositionWS;
+    ray.Direction = -normalize(mul(float4((float2)pixel + 0.5, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
+    float nearPlaneT = _RayTMin / max(dot(ray.Direction, _CameraForwardWS), 1e-6);
+    ray.TMin = max(nearPlaneT, 1e-5);
+    ray.TMax = max(_RayTMax, ray.TMin);
+
+    RayPayload payload = TraceScene(_RaytracingAccelerationStructure, ray, _AllInstanceMask);
+
+    float3 color = EvaluateSimpleSky(ray.Direction);
+    if (payload.hit != 0u)
+    {
+        bool keepTransparent = ShouldKeepScreenDoorHitForPixel(pixel);
+        if (IsTransparentHit(payload) && !keepTransparent)
+        {
+            RayDesc opaqueRay = ray;
+            opaqueRay.TMin = min(
+                ray.TMax,
+                max(payload.hitT + kSecondaryRayTOffset, ray.TMin));
+            RayPayload opaquePayload = TraceScene(
+                _RaytracingAccelerationStructure,
+                opaqueRay,
+                _OpaqueInstanceMask);
+            if (opaquePayload.hit != 0u)
+            {
+                color = ShadePayload(opaquePayload);
+            }
+        }
+        else
+        {
+            color = ShadePayload(payload);
+        }
+    }
+
+    _Output[pixel] = float4(color, 1.0);
+}
+
+[shader("miss")]
+void MissMain(inout RayPayload payload : SV_RayPayload)
+{
+    payload.hit = 0u;
+    payload.hitT = 0.0;
+    payload.packedNormalAndPaletteId = 0u;
+    payload.flags = 0u;
+}

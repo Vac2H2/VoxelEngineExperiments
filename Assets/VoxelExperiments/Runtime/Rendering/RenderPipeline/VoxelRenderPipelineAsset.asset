@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d98d90eec1a34610bd4238227e5579ce, type: 3}
+  m_Name: VoxelRenderPipelineAsset
+  m_EditorClassIdentifier: VoxelExperiments.Runtime::VoxelExperiments.Runtime.Rendering.RenderPipeline.VoxelRenderPipelineAsset
+  _availableModules:
+  - {fileID: 11400000, guid: ae224c8024774b2283149a9ecdc8a548, type: 2}
+  - {fileID: 11400000, guid: ab42bc4d407147669def4257496f9727, type: 2}
+  _selectedModule: {fileID: 11400000, guid: ae224c8024774b2283149a9ecdc8a548, type: 2}
