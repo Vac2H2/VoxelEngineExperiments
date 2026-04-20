@@ -14,6 +14,12 @@ coordinate-to-index mapping.
 - `VoxelVolume`: chunked voxel storage with 8x8x8 byte voxels per chunk
 - `VoxelModel`: one voxel object wrapped around a fixed opaque/transparent volume pair
 - `VoxelPalette`: fixed-size 256-color palette for voxel content
+- `VoxelModelAsset`: strong-typed `ScriptableObject` container for serialized `VoxelModel` bytes
+- `VoxelPaletteAsset`: strong-typed `ScriptableObject` container for serialized `VoxelPalette` bytes
+- `Helper/AssetReferenceVoxelModel`: Addressables reference wrapper for `VoxelModelAsset`
+- `Helper/AssetReferenceVoxelPalette`: Addressables reference wrapper for `VoxelPaletteAsset`
+- `Helper/VoxelModelSerializer`: binary serializer for `VoxelModel`
+- `Helper/VoxelPaletteSerializer`: binary serializer for `VoxelPalette`
 
 ## Storage Rules
 
@@ -27,6 +33,11 @@ fixed `16`-slot per-chunk layout without being treated as valid bounds.
 
 `VoxelVolume` is not fixed-size. It starts from an initial chunk capacity, then
 grows its internal `NativeList` storage when more chunk slots are needed.
+
+Addressable `VoxelModel` payloads are stored inside `VoxelModelAsset`, and
+addressable `VoxelPalette` payloads are stored inside `VoxelPaletteAsset`.
+Those assets contain serialized byte blobs whose layouts are defined by
+`VoxelModelSerializer` and `VoxelPaletteSerializer`.
 
 ## Model Rules
 

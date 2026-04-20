@@ -5,9 +5,13 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Experiment.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/Scenes/PrimaryRay.unity
+    guid: 12b63d1a3a99b644a8e7572a1eae23f0
   m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: b006dc238515c9f45aeeeb2a81549e83, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   m_UseUCBPForAssetBundles: 0

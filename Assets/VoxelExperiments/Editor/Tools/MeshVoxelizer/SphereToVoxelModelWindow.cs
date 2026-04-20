@@ -194,7 +194,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
                             Vector3 chunkOrigin = gridOrigin + Vector3.Scale(
                                 (Vector3)chunkCoord,
                                 Vector3.one * (VoxelChunkLayout.Dimension * voxelSize));
-                            occupiedChunks.Add(new ChunkBuilder(chunkOrigin, voxelSize, memoryLayout));
+                            occupiedChunks.Add(new ChunkBuilder(chunkCoord, chunkOrigin, voxelSize, memoryLayout));
                         }
 
                         occupiedChunks[chunkIndex].SetVoxel(
@@ -219,6 +219,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             byte[] occupancyBytes = new byte[occupiedChunks.Count * VoxelChunkLayout.OccupancyByteCount];
             byte[] voxelBytes = new byte[occupiedChunks.Count * VoxelChunkLayout.VoxelDataByteCount];
             ModelChunkAabb[] chunkAabbs = new ModelChunkAabb[occupiedChunks.Count];
+            Vector3Int[] chunkCoordinates = new Vector3Int[occupiedChunks.Count];
 
             for (int i = 0; i < occupiedChunks.Count; i++)
             {
@@ -236,9 +237,10 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
                     voxelBytes,
                     i * VoxelChunkLayout.VoxelDataByteCount);
                 chunkAabbs[i] = occupiedChunks[i].BuildAabb();
+                chunkCoordinates[i] = occupiedChunks[i].ChunkCoordinate;
             }
 
-            return new MeshVoxelizationResult(memoryLayout, occupancyBytes, voxelBytes, chunkAabbs);
+            return new MeshVoxelizationResult(memoryLayout, occupancyBytes, voxelBytes, chunkAabbs, chunkCoordinates);
         }
 
         private string ResolveTargetPath()
@@ -314,18 +316,22 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
         {
             private readonly byte[] _occupancyBytes = new byte[VoxelChunkLayout.OccupancyByteCount];
             private readonly byte[] _voxelBytes = new byte[VoxelChunkLayout.VoxelDataByteCount];
+            private readonly Vector3Int _chunkCoordinate;
             private readonly Vector3 _chunkOrigin;
             private readonly float _voxelSize;
             private readonly VoxelMemoryLayout _memoryLayout;
 
-            public ChunkBuilder(Vector3 chunkOrigin, float voxelSize, VoxelMemoryLayout memoryLayout)
+            public ChunkBuilder(Vector3Int chunkCoordinate, Vector3 chunkOrigin, float voxelSize, VoxelMemoryLayout memoryLayout)
             {
+                _chunkCoordinate = chunkCoordinate;
                 _chunkOrigin = chunkOrigin;
                 _voxelSize = voxelSize;
                 _memoryLayout = memoryLayout;
             }
 
             public bool HasOccupancy { get; private set; }
+
+            public Vector3Int ChunkCoordinate => _chunkCoordinate;
 
             public void SetVoxel(int x, int y, int z, byte value)
             {

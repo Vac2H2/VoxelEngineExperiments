@@ -9,6 +9,7 @@ and dispose voxel resources as runtime state changes.
 
 ## Current Layout
 
+- `Example`: small scene-facing example entry points for manual engine hookup
 - `Manager`: synchronous managers that own voxel GPU resource lifetimes
 
 ## Responsibilities

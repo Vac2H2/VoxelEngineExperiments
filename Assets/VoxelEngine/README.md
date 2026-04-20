@@ -12,6 +12,7 @@ to the formal pipeline should be organized under this folder.
 
 - `Data`: core data structures shared by the engine
 - `LifeCycle`: voxel resource lifetime and orchestration
+- `Render`: rendering-facing resource aggregation and pipeline entry points
 
 ## Folder Rules
 

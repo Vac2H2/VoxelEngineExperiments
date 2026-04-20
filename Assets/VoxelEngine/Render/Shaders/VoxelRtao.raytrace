@@ -1,0 +1,217 @@
+#pragma max_recursion_depth 1
+#pragma only_renderers d3d11
+
+#define VOXEL_ENGINE_INCLUDE_HIT_SHADERS 0
+#include "VoxelProceduralShaderShared.hlsl"
+
+RaytracingAccelerationStructure _RaytracingAccelerationStructure;
+
+Texture2D<float4> _VoxelEngineGbufferNormal;
+Texture2D<float> _VoxelEngineGbufferDepth;
+Texture2D<float2> _VoxelEngineRtaoStbnSlice;
+
+float4x4 _PixelCoordToViewDirWS;
+float3 _CameraPositionWS;
+float3 _CameraForwardWS;
+float _RayTMax;
+uint _OpaqueInstanceMask;
+uint _RtaoPixelStep;
+uint _RtaoRaysPerPixel;
+float _RtaoMaxDistance;
+float _RtaoNormalBias;
+
+RWTexture2D<float> _VoxelEngineRtao;
+
+static const float kLightingTau = 6.28318530718;
+static const float kAoSecondaryRayTMin = 1e-4;
+static const uint kMaxSupportedRaysPerPixel = 8u;
+
+float3 DecodeWorldNormal(float3 encodedNormal)
+{
+    return normalize((encodedNormal * 2.0) - 1.0);
+}
+
+float3 ComputePrimaryViewDirectionWS(uint2 pixel)
+{
+    return -normalize(mul(float4((float2)pixel + 0.5, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
+}
+
+float ReconstructLinearViewDepth(float depth01)
+{
+    return depth01 * max(_RayTMax, 1e-6);
+}
+
+float ReconstructPrimaryRayHitT(float linearViewDepth, float3 viewDirectionWS)
+{
+    return linearViewDepth / max(dot(viewDirectionWS, _CameraForwardWS), 1e-6);
+}
+
+void BuildOrthonormalBasis(float3 normalWS, out float3 tangentWS, out float3 bitangentWS)
+{
+    float3 up = abs(normalWS.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+    tangentWS = normalize(cross(up, normalWS));
+    bitangentWS = cross(normalWS, tangentWS);
+}
+
+float3 TransformDirectionToWorld(float3 localDirection, float3 normalWS)
+{
+    float3 tangentWS;
+    float3 bitangentWS;
+    BuildOrthonormalBasis(normalWS, tangentWS, bitangentWS);
+    return
+        tangentWS * localDirection.x +
+        bitangentWS * localDirection.y +
+        normalWS * localDirection.z;
+}
+
+float3 SampleCosineHemisphere(float2 sampleUv)
+{
+    float r = sqrt(saturate(sampleUv.x));
+    float phi = kLightingTau * sampleUv.y;
+    float x = r * cos(phi);
+    float y = r * sin(phi);
+    float z = sqrt(saturate(1.0 - sampleUv.x));
+    return float3(x, y, z);
+}
+
+uint ResolveOpaqueInstanceMask()
+{
+    return _OpaqueInstanceMask == 0u ? 0x1u : _OpaqueInstanceMask;
+}
+
+uint ResolvePixelStep()
+{
+    return max(_RtaoPixelStep, 1u);
+}
+
+float ResolveMaxDistance()
+{
+    return _RtaoMaxDistance <= 0.0 ? 24.0 : _RtaoMaxDistance;
+}
+
+float ResolveNormalBias()
+{
+    return _RtaoNormalBias < 0.0 ? 0.0 : (_RtaoNormalBias == 0.0 ? 0.05 : _RtaoNormalBias);
+}
+
+uint ResolveRaysPerPixel()
+{
+    return clamp(_RtaoRaysPerPixel, 1u, kMaxSupportedRaysPerPixel);
+}
+
+bool TryLoadSurface(uint2 aoPixel, out uint2 fullResPixel, out float3 positionWS, out float3 normalWS)
+{
+    fullResPixel = 0u;
+    positionWS = 0.0;
+    normalWS = 0.0;
+
+    uint sourceWidth;
+    uint sourceHeight;
+    _VoxelEngineGbufferDepth.GetDimensions(sourceWidth, sourceHeight);
+    if (sourceWidth == 0u || sourceHeight == 0u)
+    {
+        return false;
+    }
+
+    uint pixelStep = ResolvePixelStep();
+    fullResPixel = (aoPixel * pixelStep) + (pixelStep >> 1u);
+    fullResPixel = min(fullResPixel, uint2(sourceWidth - 1u, sourceHeight - 1u));
+
+    float3 encodedNormal = _VoxelEngineGbufferNormal.Load(int3(fullResPixel, 0)).xyz;
+    if (dot(encodedNormal, encodedNormal) <= 1e-6)
+    {
+        return false;
+    }
+
+    float depth01 = _VoxelEngineGbufferDepth.Load(int3(fullResPixel, 0));
+    float3 viewDirectionWS = ComputePrimaryViewDirectionWS(fullResPixel);
+    float linearViewDepth = ReconstructLinearViewDepth(depth01);
+    float hitT = ReconstructPrimaryRayHitT(linearViewDepth, viewDirectionWS);
+    positionWS = _CameraPositionWS + (viewDirectionWS * hitT);
+    normalWS = DecodeWorldNormal(encodedNormal);
+    return true;
+}
+
+float2 LoadStbnSample(uint2 fullResPixel, uint rayIndex)
+{
+    uint stbnWidth;
+    uint stbnHeight;
+    _VoxelEngineRtaoStbnSlice.GetDimensions(stbnWidth, stbnHeight);
+    if (stbnWidth == 0u || stbnHeight == 0u)
+    {
+        return float2(0.5, 0.5);
+    }
+
+    uint2 rayOffset = uint2(rayIndex * 47u, rayIndex * 173u);
+    uint2 stbnPixel = uint2((fullResPixel.x + rayOffset.x) % stbnWidth, (fullResPixel.y + rayOffset.y) % stbnHeight);
+    return saturate(_VoxelEngineRtaoStbnSlice.Load(int3(stbnPixel, 0)));
+}
+
+RayPayload TraceAoRay(RayDesc ray, uint instanceMask)
+{
+    RayPayload payload;
+    payload.hitT = 0.0;
+    payload.worldNormal = 0.0;
+    payload.packedAlbedo = 0u;
+    payload.flags = 0u;
+
+    TraceRay(
+        _RaytracingAccelerationStructure,
+        RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
+        instanceMask,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    return payload;
+}
+
+[shader("raygeneration")]
+void RayGenMain()
+{
+    uint2 aoPixel = DispatchRaysIndex().xy;
+
+    uint2 fullResPixel;
+    float3 positionWS;
+    float3 normalWS;
+    if (!TryLoadSurface(aoPixel, fullResPixel, positionWS, normalWS))
+    {
+        _VoxelEngineRtao[aoPixel] = 0.0;
+        return;
+    }
+
+    float maxDistance = ResolveMaxDistance();
+    float3 origin = positionWS + (normalWS * ResolveNormalBias());
+    uint raysPerPixel = ResolveRaysPerPixel();
+    float accumulatedDistance = 0.0;
+
+    for (uint rayIndex = 0u; rayIndex < raysPerPixel; rayIndex++)
+    {
+        float3 localDirection = SampleCosineHemisphere(LoadStbnSample(fullResPixel, rayIndex));
+        float3 directionWS = normalize(TransformDirectionToWorld(localDirection, normalWS));
+
+        RayDesc ray;
+        ray.Origin = origin;
+        ray.Direction = directionWS;
+        ray.TMin = kAoSecondaryRayTMin;
+        ray.TMax = maxDistance;
+
+        RayPayload payload = TraceAoRay(ray, ResolveOpaqueInstanceMask());
+        accumulatedDistance += HasHit(payload)
+            ? min(payload.hitT, maxDistance)
+            : maxDistance;
+    }
+
+    _VoxelEngineRtao[aoPixel] = accumulatedDistance / raysPerPixel;
+}
+
+[shader("miss")]
+void MissMain(inout RayPayload payload : SV_RayPayload)
+{
+    payload.hitT = 0.0;
+    payload.worldNormal = 0.0;
+    payload.packedAlbedo = 0u;
+    payload.flags = 0u;
+}

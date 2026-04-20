@@ -5,7 +5,7 @@ using VoxelExperiments.Runtime.Rendering.ModelProceduralAabb;
 
 namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
 {
-    internal readonly struct MeshVoxelizationSettings
+    public readonly struct MeshVoxelizationSettings
     {
         public MeshVoxelizationSettings(float voxelSize, byte solidVoxelValue, VoxelMemoryLayout memoryLayout)
         {
@@ -36,13 +36,14 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
         public VoxelMemoryLayout MemoryLayout { get; }
     }
 
-    internal sealed class MeshVoxelizationResult
+    public sealed class MeshVoxelizationResult
     {
         public MeshVoxelizationResult(
             VoxelMemoryLayout memoryLayout,
             byte[] occupancyBytes,
             byte[] voxelBytes,
-            ModelChunkAabb[] chunkAabbs)
+            ModelChunkAabb[] chunkAabbs,
+            Vector3Int[] chunkCoordinates)
         {
             if (!Enum.IsDefined(typeof(VoxelMemoryLayout), memoryLayout))
             {
@@ -53,6 +54,12 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             OccupancyBytes = occupancyBytes ?? throw new ArgumentNullException(nameof(occupancyBytes));
             VoxelBytes = voxelBytes ?? throw new ArgumentNullException(nameof(voxelBytes));
             ChunkAabbs = chunkAabbs ?? throw new ArgumentNullException(nameof(chunkAabbs));
+            ChunkCoordinates = chunkCoordinates ?? throw new ArgumentNullException(nameof(chunkCoordinates));
+
+            if (ChunkCoordinates.Length != ChunkAabbs.Length)
+            {
+                throw new ArgumentException("Chunk coordinate count must match chunk AABB count.", nameof(chunkCoordinates));
+            }
         }
 
         public int ChunkCount => ChunkAabbs.Length;
@@ -64,6 +71,8 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
         public byte[] VoxelBytes { get; }
 
         public ModelChunkAabb[] ChunkAabbs { get; }
+
+        public Vector3Int[] ChunkCoordinates { get; }
     }
 
     internal static class MeshVoxelizer

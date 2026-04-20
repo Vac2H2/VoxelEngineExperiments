@@ -10,7 +10,7 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
 {
-    internal static class MeshVoxelizerGpu
+    public static class MeshVoxelizerGpu
     {
         private static readonly string TraceLogPath = Path.Combine(Environment.CurrentDirectory, "Temp", "MeshVoxelizerTrace.log");
         private static readonly int[] TrailingZeroCountTable =
@@ -517,12 +517,14 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             byte[] occupancyBytes = new byte[chunkKeys.Count * VoxelChunkLayout.OccupancyByteCount];
             byte[] voxelBytes = new byte[chunkKeys.Count * VoxelChunkLayout.VoxelDataByteCount];
             ModelChunkAabb[] chunkAabbs = new ModelChunkAabb[chunkKeys.Count];
+            Vector3Int[] chunkCoordinates = new Vector3Int[chunkKeys.Count];
             LogStage("CompactExteriorVolume allocate output arrays end", null, $"t={stopwatch.ElapsedMilliseconds} ms");
 
             LogStage("CompactExteriorVolume finalize chunks begin", null);
             for (int i = 0; i < chunkKeys.Count; i++)
             {
                 CompactChunkBuilder chunkBuilder = chunkBuilders[chunkKeys[i]];
+                chunkCoordinates[i] = chunkBuilder.ChunkCoord;
                 Buffer.BlockCopy(
                     chunkBuilder.OccupancyBytes,
                     0,
@@ -545,7 +547,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             }
             LogStage("CompactExteriorVolume finalize chunks end", null, $"t={stopwatch.ElapsedMilliseconds} ms");
 
-            return new MeshVoxelizationResult(memoryLayout, occupancyBytes, voxelBytes, chunkAabbs);
+            return new MeshVoxelizationResult(memoryLayout, occupancyBytes, voxelBytes, chunkAabbs, chunkCoordinates);
         }
 
         private static int EncodeVoxelIndex(int x, int y, int z, Vector3Int gridDimensions)

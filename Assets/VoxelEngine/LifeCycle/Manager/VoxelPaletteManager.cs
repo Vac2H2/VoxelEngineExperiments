@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using VoxelEngine.Data.Voxel;
 
 namespace VoxelEngine.LifeCycle.Manager
@@ -9,25 +12,24 @@ namespace VoxelEngine.LifeCycle.Manager
     {
         public const int ColorBufferStrideBytes = 4;
 
-        private readonly Dictionary<VoxelPalette, Entry> _entriesByPalette = new Dictionary<VoxelPalette, Entry>();
+        private readonly Dictionary<VoxelPaletteKey, Entry> _entriesByKey = new Dictionary<VoxelPaletteKey, Entry>();
         private readonly Dictionary<int, Entry> _entriesByHandle = new Dictionary<int, Entry>();
         private readonly Stack<int> _freeHandleValues = new Stack<int>();
         private bool _isDisposed;
 
-        public VoxelPaletteHandle Acquire(VoxelPalette palette)
+        public VoxelPaletteHandle Add(VoxelPaletteKey key, VoxelPalette palette)
         {
             EnsureNotDisposed();
-            palette = ValidatePalette(nameof(palette), palette);
+            ValidateKey(key);
 
-            if (_entriesByPalette.TryGetValue(palette, out Entry existingEntry))
+            if (palette == null)
             {
-                if (existingEntry.RefCount == uint.MaxValue)
-                {
-                    throw new InvalidOperationException("VoxelPaletteManager handle refcount overflow.");
-                }
+                throw new ArgumentNullException(nameof(palette));
+            }
 
-                existingEntry.RefCount++;
-                return existingEntry.Handle;
+            if (_entriesByKey.ContainsKey(key))
+            {
+                throw new InvalidOperationException("The specified VoxelPaletteKey is already resident in VoxelPaletteManager.");
             }
 
             VoxelPaletteGpuView gpuView = BuildGpuView(palette);
@@ -35,26 +37,88 @@ namespace VoxelEngine.LifeCycle.Manager
 
             try
             {
-                Entry entry = new Entry(palette, handle, gpuView);
-                _entriesByPalette.Add(palette, entry);
+                Entry entry = new Entry(key, sourceRuntimeKey: null, handle, gpuView);
+                _entriesByKey.Add(key, entry);
                 _entriesByHandle.Add(handle.Value, entry);
                 return handle;
             }
             catch
             {
+                _entriesByKey.Remove(key);
+                _entriesByHandle.Remove(handle.Value);
                 gpuView.DisposeBuffers();
                 _freeHandleValues.Push(handle.Value);
                 throw;
             }
         }
 
-        public bool TryGetHandle(VoxelPalette palette, out VoxelPaletteHandle handle)
+        public VoxelPaletteHandle Add(AssetReferenceVoxelPalette paletteReference)
         {
             EnsureNotDisposed();
-            palette = ValidatePalette(nameof(palette), palette);
+            ValidateReference(paletteReference);
+            VoxelPaletteKey key = CreateKey(paletteReference);
 
-            if (_entriesByPalette.TryGetValue(palette, out Entry entry))
+            if (_entriesByKey.ContainsKey(key))
             {
+                throw new InvalidOperationException("The specified VoxelPaletteKey is already resident in VoxelPaletteManager.");
+            }
+
+            string sourceRuntimeKey = paletteReference.RuntimeKey.ToString();
+            VoxelPaletteGpuView gpuView = BuildGpuViewFromSource(sourceRuntimeKey);
+            VoxelPaletteHandle handle = new VoxelPaletteHandle(AllocateHandleValue());
+
+            try
+            {
+                Entry entry = new Entry(key, sourceRuntimeKey, handle, gpuView);
+                _entriesByKey.Add(key, entry);
+                _entriesByHandle.Add(handle.Value, entry);
+                return handle;
+            }
+            catch
+            {
+                _entriesByKey.Remove(key);
+                _entriesByHandle.Remove(handle.Value);
+                gpuView.DisposeBuffers();
+                _freeHandleValues.Push(handle.Value);
+                throw;
+            }
+        }
+
+        public bool TryRetain(VoxelPaletteKey key, out VoxelPaletteHandle handle)
+        {
+            EnsureNotDisposed();
+            ValidateKey(key);
+
+            if (_entriesByKey.TryGetValue(key, out Entry entry))
+            {
+                if (entry.RefCount == uint.MaxValue)
+                {
+                    throw new InvalidOperationException("VoxelPaletteManager handle refcount overflow.");
+                }
+
+                entry.RefCount++;
+                handle = entry.Handle;
+                return true;
+            }
+
+            handle = default;
+            return false;
+        }
+
+        public bool TryRetain(AssetReferenceVoxelPalette paletteReference, out VoxelPaletteHandle handle)
+        {
+            EnsureNotDisposed();
+            ValidateReference(paletteReference);
+            VoxelPaletteKey key = CreateKey(paletteReference);
+
+            if (_entriesByKey.TryGetValue(key, out Entry entry))
+            {
+                if (entry.RefCount == uint.MaxValue)
+                {
+                    throw new InvalidOperationException("VoxelPaletteManager handle refcount overflow.");
+                }
+
+                entry.RefCount++;
                 handle = entry.Handle;
                 return true;
             }
@@ -68,7 +132,12 @@ namespace VoxelEngine.LifeCycle.Manager
             EnsureNotDisposed();
 
             Entry entry = GetEntry(handle);
-            VoxelPaletteGpuView replacementView = BuildGpuView(entry.Palette);
+            if (string.IsNullOrWhiteSpace(entry.SourceRuntimeKey))
+            {
+                throw new InvalidOperationException("Runtime-created VoxelPalette entries cannot be synchronized from Addressables.");
+            }
+
+            VoxelPaletteGpuView replacementView = BuildGpuViewFromSource(entry.SourceRuntimeKey);
             VoxelPaletteGpuView previousView = entry.GpuView;
             entry.GpuView = replacementView;
             previousView.DisposeBuffers();
@@ -91,7 +160,7 @@ namespace VoxelEngine.LifeCycle.Manager
                 return;
             }
 
-            _entriesByPalette.Remove(entry.Palette);
+            _entriesByKey.Remove(entry.Key);
             _entriesByHandle.Remove(handle.Value);
             entry.GpuView.DisposeBuffers();
             _freeHandleValues.Push(handle.Value);
@@ -109,10 +178,60 @@ namespace VoxelEngine.LifeCycle.Manager
                 entry.GpuView.DisposeBuffers();
             }
 
-            _entriesByPalette.Clear();
+            _entriesByKey.Clear();
             _entriesByHandle.Clear();
             _freeHandleValues.Clear();
             _isDisposed = true;
+        }
+
+        private static VoxelPaletteKey CreateKey(AssetReference paletteReference)
+        {
+            return new VoxelPaletteKey(paletteReference.AssetGUID);
+        }
+
+        private static VoxelPaletteGpuView BuildGpuViewFromSource(string sourceRuntimeKey)
+        {
+            VoxelPalette palette = null;
+
+            try
+            {
+                palette = LoadPaletteFromSource(sourceRuntimeKey);
+                return BuildGpuView(palette);
+            }
+            finally
+            {
+                palette?.Dispose();
+            }
+        }
+
+        private static VoxelPalette LoadPaletteFromSource(string sourceRuntimeKey)
+        {
+            if (string.IsNullOrWhiteSpace(sourceRuntimeKey))
+            {
+                throw new ArgumentException("Source runtime key must be a non-empty string.", nameof(sourceRuntimeKey));
+            }
+
+            AsyncOperationHandle<VoxelPaletteAsset> loadHandle = default;
+
+            try
+            {
+                loadHandle = Addressables.LoadAssetAsync<VoxelPaletteAsset>(sourceRuntimeKey);
+                VoxelPaletteAsset paletteAsset = loadHandle.WaitForCompletion();
+                if (loadHandle.Status != AsyncOperationStatus.Succeeded || paletteAsset == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to load VoxelPaletteAsset from Addressables runtime key '{sourceRuntimeKey}'.");
+                }
+
+                return VoxelPaletteSerializer.Deserialize(paletteAsset, Allocator.Temp);
+            }
+            finally
+            {
+                if (loadHandle.IsValid())
+                {
+                    Addressables.Release(loadHandle);
+                }
+            }
         }
 
         private static VoxelPaletteGpuView BuildGpuView(VoxelPalette palette)
@@ -174,38 +293,96 @@ namespace VoxelEngine.LifeCycle.Manager
             }
         }
 
-        private static VoxelPalette ValidatePalette(string paramName, VoxelPalette palette)
+        private static void ValidateKey(VoxelPaletteKey key)
         {
-            if (palette == null)
+            if (!key.IsValid)
             {
-                throw new ArgumentNullException(paramName);
+                throw new ArgumentOutOfRangeException(nameof(key), "VoxelPaletteKey must contain a non-empty asset GUID.");
+            }
+        }
+
+        private static void ValidateReference(AssetReferenceVoxelPalette paletteReference)
+        {
+            if (paletteReference == null)
+            {
+                throw new ArgumentNullException(nameof(paletteReference));
             }
 
-            if (!palette.IsCreated)
+            if (!paletteReference.RuntimeKeyIsValid())
             {
-                throw new ArgumentException("VoxelPalette must be created.", paramName);
+                throw new ArgumentException("VoxelPalette asset reference must contain a valid Addressables runtime key.", nameof(paletteReference));
             }
 
-            return palette;
+            ValidateKey(CreateKey(paletteReference));
         }
 
         private sealed class Entry
         {
-            public Entry(VoxelPalette palette, VoxelPaletteHandle handle, VoxelPaletteGpuView gpuView)
+            public Entry(VoxelPaletteKey key, string sourceRuntimeKey, VoxelPaletteHandle handle, VoxelPaletteGpuView gpuView)
             {
-                Palette = palette ?? throw new ArgumentNullException(nameof(palette));
+                Key = key;
+                SourceRuntimeKey = sourceRuntimeKey;
                 Handle = handle;
                 GpuView = gpuView;
                 RefCount = 1;
             }
 
-            public VoxelPalette Palette { get; }
+            public VoxelPaletteKey Key { get; }
+
+            public string SourceRuntimeKey { get; }
 
             public VoxelPaletteHandle Handle { get; }
 
             public VoxelPaletteGpuView GpuView { get; set; }
 
             public uint RefCount { get; set; }
+        }
+    }
+
+    public readonly struct VoxelPaletteKey : IEquatable<VoxelPaletteKey>
+    {
+        public VoxelPaletteKey(string assetGuid)
+        {
+            if (string.IsNullOrWhiteSpace(assetGuid))
+            {
+                throw new ArgumentException("Asset GUID must be a non-empty string.", nameof(assetGuid));
+            }
+
+            AssetGuid = assetGuid;
+        }
+
+        public string AssetGuid { get; }
+
+        public bool IsValid => !string.IsNullOrWhiteSpace(AssetGuid);
+
+        public bool Equals(VoxelPaletteKey other)
+        {
+            return StringComparer.Ordinal.Equals(AssetGuid, other.AssetGuid);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is VoxelPaletteKey other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return AssetGuid == null ? 0 : StringComparer.Ordinal.GetHashCode(AssetGuid);
+        }
+
+        public override string ToString()
+        {
+            return AssetGuid ?? string.Empty;
+        }
+
+        public static bool operator ==(VoxelPaletteKey left, VoxelPaletteKey right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(VoxelPaletteKey left, VoxelPaletteKey right)
+        {
+            return !left.Equals(right);
         }
     }
 

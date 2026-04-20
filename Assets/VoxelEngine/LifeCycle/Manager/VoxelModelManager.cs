@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using VoxelEngine.Data.Voxel;
 
 namespace VoxelEngine.LifeCycle.Manager
@@ -10,31 +13,26 @@ namespace VoxelEngine.LifeCycle.Manager
     {
         public const int VolumeBufferChunkStrideBytes = VoxelVolume.VoxelsPerChunk;
         public const int VolumeBufferChunkStrideWords = VolumeBufferChunkStrideBytes / sizeof(uint);
-        public const int AabbDescBufferStrideBytes = sizeof(int);
+        public const int AabbDescBufferStrideBytes = sizeof(int) * 7;
         public const int AabbBufferStrideBytes = 24;
-        private readonly Dictionary<VoxelModel, Entry> _entriesByModel = new Dictionary<VoxelModel, Entry>();
+        private readonly Dictionary<VoxelModelKey, Entry> _entriesByKey = new Dictionary<VoxelModelKey, Entry>();
         private readonly Dictionary<int, Entry> _entriesByHandle = new Dictionary<int, Entry>();
         private readonly Stack<int> _freeHandleValues = new Stack<int>();
         private bool _isDisposed;
 
-        public VoxelModelHandle Acquire(VoxelModel model)
+        public VoxelModelHandle Add(VoxelModelKey key, VoxelModel model)
         {
             EnsureNotDisposed();
+            ValidateKey(key);
 
             if (model == null)
             {
                 throw new ArgumentNullException(nameof(model));
             }
 
-            if (_entriesByModel.TryGetValue(model, out Entry existingEntry))
+            if (_entriesByKey.ContainsKey(key))
             {
-                if (existingEntry.RefCount == uint.MaxValue)
-                {
-                    throw new InvalidOperationException("VoxelModelManager handle refcount overflow.");
-                }
-
-                existingEntry.RefCount++;
-                return existingEntry.Handle;
+                throw new InvalidOperationException("The specified VoxelModelKey is already resident in VoxelModelManager.");
             }
 
             VoxelModelGpuView gpuView = BuildGpuView(model);
@@ -42,30 +40,88 @@ namespace VoxelEngine.LifeCycle.Manager
 
             try
             {
-                Entry entry = new Entry(model, handle, gpuView);
-                _entriesByModel.Add(model, entry);
+                Entry entry = new Entry(key, sourceRuntimeKey: null, handle, gpuView);
+                _entriesByKey.Add(key, entry);
                 _entriesByHandle.Add(handle.Value, entry);
                 return handle;
             }
             catch
             {
+                _entriesByKey.Remove(key);
+                _entriesByHandle.Remove(handle.Value);
                 DisposeGpuView(in gpuView);
                 _freeHandleValues.Push(handle.Value);
                 throw;
             }
         }
 
-        public bool TryGetHandle(VoxelModel model, out VoxelModelHandle handle)
+        public VoxelModelHandle Add(AssetReferenceVoxelModel modelReference)
         {
             EnsureNotDisposed();
+            ValidateReference(modelReference);
+            VoxelModelKey key = CreateKey(modelReference);
 
-            if (model == null)
+            if (_entriesByKey.ContainsKey(key))
             {
-                throw new ArgumentNullException(nameof(model));
+                throw new InvalidOperationException("The specified VoxelModelKey is already resident in VoxelModelManager.");
             }
 
-            if (_entriesByModel.TryGetValue(model, out Entry entry))
+            string sourceRuntimeKey = modelReference.RuntimeKey.ToString();
+            VoxelModelGpuView gpuView = BuildGpuViewFromSource(sourceRuntimeKey);
+            VoxelModelHandle handle = new VoxelModelHandle(AllocateHandleValue());
+
+            try
             {
+                Entry entry = new Entry(key, sourceRuntimeKey, handle, gpuView);
+                _entriesByKey.Add(key, entry);
+                _entriesByHandle.Add(handle.Value, entry);
+                return handle;
+            }
+            catch
+            {
+                _entriesByKey.Remove(key);
+                _entriesByHandle.Remove(handle.Value);
+                DisposeGpuView(in gpuView);
+                _freeHandleValues.Push(handle.Value);
+                throw;
+            }
+        }
+
+        public bool TryRetain(VoxelModelKey key, out VoxelModelHandle handle)
+        {
+            EnsureNotDisposed();
+            ValidateKey(key);
+
+            if (_entriesByKey.TryGetValue(key, out Entry entry))
+            {
+                if (entry.RefCount == uint.MaxValue)
+                {
+                    throw new InvalidOperationException("VoxelModelManager handle refcount overflow.");
+                }
+
+                entry.RefCount++;
+                handle = entry.Handle;
+                return true;
+            }
+
+            handle = default;
+            return false;
+        }
+
+        public bool TryRetain(AssetReferenceVoxelModel modelReference, out VoxelModelHandle handle)
+        {
+            EnsureNotDisposed();
+            ValidateReference(modelReference);
+            VoxelModelKey key = CreateKey(modelReference);
+
+            if (_entriesByKey.TryGetValue(key, out Entry entry))
+            {
+                if (entry.RefCount == uint.MaxValue)
+                {
+                    throw new InvalidOperationException("VoxelModelManager handle refcount overflow.");
+                }
+
+                entry.RefCount++;
                 handle = entry.Handle;
                 return true;
             }
@@ -79,7 +135,12 @@ namespace VoxelEngine.LifeCycle.Manager
             EnsureNotDisposed();
 
             Entry entry = GetEntry(handle);
-            VoxelModelGpuView replacementView = BuildGpuView(entry.Model);
+            if (string.IsNullOrWhiteSpace(entry.SourceRuntimeKey))
+            {
+                throw new InvalidOperationException("Runtime-created VoxelModel entries cannot be synchronized from Addressables.");
+            }
+
+            VoxelModelGpuView replacementView = BuildGpuViewFromSource(entry.SourceRuntimeKey);
             VoxelModelGpuView previousView = entry.GpuView;
             entry.GpuView = replacementView;
             DisposeGpuView(in previousView);
@@ -102,7 +163,7 @@ namespace VoxelEngine.LifeCycle.Manager
                 return;
             }
 
-            _entriesByModel.Remove(entry.Model);
+            _entriesByKey.Remove(entry.Key);
             _entriesByHandle.Remove(handle.Value);
             VoxelModelGpuView gpuView = entry.GpuView;
             DisposeGpuView(in gpuView);
@@ -122,20 +183,70 @@ namespace VoxelEngine.LifeCycle.Manager
                 DisposeGpuView(in gpuView);
             }
 
-            _entriesByModel.Clear();
+            _entriesByKey.Clear();
             _entriesByHandle.Clear();
             _freeHandleValues.Clear();
             _isDisposed = true;
         }
 
+        private static VoxelModelKey CreateKey(AssetReference modelReference)
+        {
+            return new VoxelModelKey(modelReference.AssetGUID);
+        }
+
+        private static VoxelModelGpuView BuildGpuViewFromSource(string sourceRuntimeKey)
+        {
+            VoxelModel model = null;
+
+            try
+            {
+                model = LoadModelFromSource(sourceRuntimeKey);
+                return BuildGpuView(model);
+            }
+            finally
+            {
+                model?.Dispose();
+            }
+        }
+
+        private static VoxelModel LoadModelFromSource(string sourceRuntimeKey)
+        {
+            if (string.IsNullOrWhiteSpace(sourceRuntimeKey))
+            {
+                throw new ArgumentException("Source runtime key must be a non-empty string.", nameof(sourceRuntimeKey));
+            }
+
+            AsyncOperationHandle<VoxelModelAsset> loadHandle = default;
+
+            try
+            {
+                loadHandle = Addressables.LoadAssetAsync<VoxelModelAsset>(sourceRuntimeKey);
+                VoxelModelAsset modelAsset = loadHandle.WaitForCompletion();
+                if (loadHandle.Status != AsyncOperationStatus.Succeeded || modelAsset == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to load VoxelModelAsset from Addressables runtime key '{sourceRuntimeKey}'.");
+                }
+
+                return VoxelModelSerializer.Deserialize(modelAsset, Allocator.Temp);
+            }
+            finally
+            {
+                if (loadHandle.IsValid())
+                {
+                    Addressables.Release(loadHandle);
+                }
+            }
+        }
+
         private static VoxelModelGpuView BuildGpuView(VoxelModel model)
         {
             return new VoxelModelGpuView(
-                BuildBlas(model.OpaqueVolume),
-                BuildBlas(model.TransparentVolume));
+                BuildVolumeGpuView(model.OpaqueVolume),
+                BuildVolumeGpuView(model.TransparentVolume));
         }
 
-        private static VoxelBlasGpuView BuildBlas(VoxelVolume volume)
+        private static VoxelVolumeGpuView BuildVolumeGpuView(VoxelVolume volume)
         {
             if (volume == null)
             {
@@ -153,7 +264,7 @@ namespace VoxelEngine.LifeCycle.Manager
                 volumeBuffer = CreateVolumeBuffer(volume, chunkCount, out int[] packedChunkIndexBySlot);
                 aabbDescBuffer = CreateAabbDescBuffer(volume, packedChunkIndexBySlot, activeAabbCount);
                 aabbBuffer = CreateAabbBuffer(volume, activeAabbCount);
-                return new VoxelBlasGpuView(volumeBuffer, chunkCount, aabbDescBuffer, aabbBuffer, activeAabbCount);
+                return new VoxelVolumeGpuView(volumeBuffer, chunkCount, aabbDescBuffer, aabbBuffer, activeAabbCount);
             }
             catch
             {
@@ -241,7 +352,11 @@ namespace VoxelEngine.LifeCycle.Manager
                         continue;
                     }
 
-                    descriptors[descriptorIndex++] = new VoxelBlasAabbDesc(packedChunkIndex);
+                    VoxelChunkAabb chunkAabb = volume.GetAabb(chunkSlotIndex, localAabbIndex);
+                    descriptors[descriptorIndex++] = new VoxelBlasAabbDesc(
+                        packedChunkIndex,
+                        chunkAabb.Min,
+                        chunkAabb.Max);
                 }
             }
 
@@ -365,17 +480,43 @@ namespace VoxelEngine.LifeCycle.Manager
             }
         }
 
+        private static void ValidateKey(VoxelModelKey key)
+        {
+            if (!key.IsValid)
+            {
+                throw new ArgumentOutOfRangeException(nameof(key), "VoxelModelKey must contain a non-empty asset GUID.");
+            }
+        }
+
+        private static void ValidateReference(AssetReferenceVoxelModel modelReference)
+        {
+            if (modelReference == null)
+            {
+                throw new ArgumentNullException(nameof(modelReference));
+            }
+
+            if (!modelReference.RuntimeKeyIsValid())
+            {
+                throw new ArgumentException("VoxelModel asset reference must contain a valid Addressables runtime key.", nameof(modelReference));
+            }
+
+            ValidateKey(CreateKey(modelReference));
+        }
+
         private sealed class Entry
         {
-            public Entry(VoxelModel model, VoxelModelHandle handle, VoxelModelGpuView gpuView)
+            public Entry(VoxelModelKey key, string sourceRuntimeKey, VoxelModelHandle handle, VoxelModelGpuView gpuView)
             {
-                Model = model ?? throw new ArgumentNullException(nameof(model));
+                Key = key;
+                SourceRuntimeKey = sourceRuntimeKey;
                 Handle = handle;
                 GpuView = gpuView;
                 RefCount = 1;
             }
 
-            public VoxelModel Model { get; }
+            public VoxelModelKey Key { get; }
+
+            public string SourceRuntimeKey { get; }
 
             public VoxelModelHandle Handle { get; }
 
@@ -385,22 +526,69 @@ namespace VoxelEngine.LifeCycle.Manager
         }
     }
 
+    public readonly struct VoxelModelKey : IEquatable<VoxelModelKey>
+    {
+        public VoxelModelKey(string assetGuid)
+        {
+            if (string.IsNullOrWhiteSpace(assetGuid))
+            {
+                throw new ArgumentException("Asset GUID must be a non-empty string.", nameof(assetGuid));
+            }
+
+            AssetGuid = assetGuid;
+        }
+
+        public string AssetGuid { get; }
+
+        public bool IsValid => !string.IsNullOrWhiteSpace(AssetGuid);
+
+        public bool Equals(VoxelModelKey other)
+        {
+            return StringComparer.Ordinal.Equals(AssetGuid, other.AssetGuid);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is VoxelModelKey other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return AssetGuid == null ? 0 : StringComparer.Ordinal.GetHashCode(AssetGuid);
+        }
+
+        public override string ToString()
+        {
+            return AssetGuid ?? string.Empty;
+        }
+
+        public static bool operator ==(VoxelModelKey left, VoxelModelKey right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(VoxelModelKey left, VoxelModelKey right)
+        {
+            return !left.Equals(right);
+        }
+    }
+
     public readonly struct VoxelModelGpuView
     {
-        public VoxelModelGpuView(VoxelBlasGpuView opaque, VoxelBlasGpuView transparent)
+        public VoxelModelGpuView(VoxelVolumeGpuView opaque, VoxelVolumeGpuView transparent)
         {
             Opaque = opaque;
             Transparent = transparent;
         }
 
-        public VoxelBlasGpuView Opaque { get; }
+        public VoxelVolumeGpuView Opaque { get; }
 
-        public VoxelBlasGpuView Transparent { get; }
+        public VoxelVolumeGpuView Transparent { get; }
     }
 
-    public readonly struct VoxelBlasGpuView
+    public readonly struct VoxelVolumeGpuView
     {
-        public VoxelBlasGpuView(
+        public VoxelVolumeGpuView(
             GraphicsBuffer volumeBuffer,
             int chunkCount,
             GraphicsBuffer aabbDescBuffer,
@@ -489,12 +677,24 @@ namespace VoxelEngine.LifeCycle.Manager
     [StructLayout(LayoutKind.Sequential)]
     public struct VoxelBlasAabbDesc
     {
-        public VoxelBlasAabbDesc(int chunkIndex)
+        public VoxelBlasAabbDesc(int chunkIndex, Unity.Mathematics.int3 localMin, Unity.Mathematics.int3 localMax)
         {
             ChunkIndex = chunkIndex;
+            LocalMinX = localMin.x;
+            LocalMinY = localMin.y;
+            LocalMinZ = localMin.z;
+            LocalMaxX = localMax.x;
+            LocalMaxY = localMax.y;
+            LocalMaxZ = localMax.z;
         }
 
         public int ChunkIndex;
+        public int LocalMinX;
+        public int LocalMinY;
+        public int LocalMinZ;
+        public int LocalMaxX;
+        public int LocalMaxY;
+        public int LocalMaxZ;
     }
 
     [StructLayout(LayoutKind.Sequential)]
