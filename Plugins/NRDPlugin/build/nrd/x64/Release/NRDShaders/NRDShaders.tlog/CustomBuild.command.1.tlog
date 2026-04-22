@@ -1,0 +1,24 @@
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\CMAKEFILES\A6C76D3994E7C41569A8A0C1F2DB9416\NRDSHADERS.RULE
+setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-build\build\Release\ShaderMake.exe -p DXIL --compiler C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-src/bin/x64/dxc.exe --flatten --stripReflection --WX --sRegShift 0 --bRegShift 2 --uRegShift 3 --tRegShift 20 --headerBlob --allResourcesBound --vulkanVersion 1.2 --sourceDir Shaders --ignoreConfigDir -c Shaders/Shaders.cfg -o C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/_Shaders -I C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/mathlib-src -D NRD_INTERNAL --project NRD --compactProgress
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\THIRDPARTY\NRD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build --check-stamp-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

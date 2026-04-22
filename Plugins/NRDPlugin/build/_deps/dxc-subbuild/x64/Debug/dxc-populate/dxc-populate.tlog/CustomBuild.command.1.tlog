@@ -1,0 +1,152 @@
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-MKDIR.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/tmp/dxc-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-DOWNLOAD.RULE
+setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/download-dxc-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/verify-dxc-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE -P C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/extract-dxc-populate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-UPDATE.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-PATCH.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-CONFIGURE.RULE
+setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\dxc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-BUILD.RULE
+setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\dxc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-INSTALL.RULE
+setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\dxc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\C177999FB21EB0CFFBB30105F28A0849\DXC-POPULATE-TEST.RULE
+setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\dxc-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\715D470D8B8AF354A6298366C8C5310D\DXC-POPULATE-COMPLETE.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E make_directory C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/Debug/dxc-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/dxc-populate-prefix/src/dxc-populate-stamp/Debug/dxc-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKEFILES\9AEDB6C72939D4978F1193C8E343B3DA\DXC-POPULATE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\DXC-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild --check-stamp-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

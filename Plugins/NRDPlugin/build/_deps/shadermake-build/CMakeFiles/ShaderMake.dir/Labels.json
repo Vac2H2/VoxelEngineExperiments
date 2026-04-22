@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/CMakeFiles/ShaderMake"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/d70185d7c6d39f682c872dd9f36da3d1/ShaderMake.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/b22655aa96bde9036bb7f6194982ffbc/ShaderMake-complete.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/5d2997dd52f64bf92d2ffd07b650ce45/ShaderMake-build.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/5d2997dd52f64bf92d2ffd07b650ce45/ShaderMake-configure.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/5d2997dd52f64bf92d2ffd07b650ce45/ShaderMake-download.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/5d2997dd52f64bf92d2ffd07b650ce45/ShaderMake-install.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/5d2997dd52f64bf92d2ffd07b650ce45/ShaderMake-mkdir.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/5d2997dd52f64bf92d2ffd07b650ce45/ShaderMake-patch.rule"
+		},
+		{
+			"file" : "C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/5d2997dd52f64bf92d2ffd07b650ce45/ShaderMake-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"ShaderMake"
+		],
+		"name" : "ShaderMake"
+	}
+}

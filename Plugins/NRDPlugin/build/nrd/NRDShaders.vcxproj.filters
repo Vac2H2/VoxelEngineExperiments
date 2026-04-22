@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\CMakeFiles\a6c76d3994e7c41569a8a0c1f2db9416\NRDShaders.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Clear.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Clear.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Common.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\NRD.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\NRDConfig.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Poisson.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Blur.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Blur.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_ClassifyTiles.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_ClassifyTiles.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Common.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Common_SpatialFilter.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Config.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HistoryFix.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HistoryFix.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HitDistReconstruction.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HitDistReconstruction.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PostBlur.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PostBlur.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PrePass.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PrePass.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_SplitScreen.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_SplitScreen.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalAccumulation.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalAccumulation.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalStabilization.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalStabilization.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Validation.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Validation.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_Copy.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_Copy.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_TemporalAccumulation.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_TemporalAccumulation.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AntiFirefly.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AntiFirefly.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Atrous.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Atrous.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AtrousSmem.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AtrousSmem.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_ClassifyTiles.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_ClassifyTiles.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Common.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Config.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Copy.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Copy.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryClamping.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryClamping.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryFix.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryFix.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HitDistReconstruction.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HitDistReconstruction.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_PrePass.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_PrePass.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_SplitScreen.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_SplitScreen.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_TemporalAccumulation.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_TemporalAccumulation.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Validation.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Validation.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Blur.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Blur.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_ClassifyTiles.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_ClassifyTiles.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Common.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Config.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Copy.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Copy.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SmoothTiles.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SmoothTiles.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SplitScreen.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SplitScreen.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_TemporalStabilization.cs.hlsl" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_TemporalStabilization.resources.hlsli" />
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\NRDShaders" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{A9C218D5-4C9E-38CA-A2EC-EFD30E6BA2C5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

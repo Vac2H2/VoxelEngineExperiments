@@ -12,6 +12,7 @@ systems through pipeline-facing entry points.
 
 - `Cores`: small render building blocks that record concrete render passes
 - `Debug`: scene-facing gizmo helpers for inspecting voxel render data
+- `NRD`: denoiser-facing bridge, data contracts, and denoise cores that sit between raw ray tracing output and final AO consumption
 - `RenderBackend`: render resource aggregation and render-instance lifetime management
 - `RenderPipeline`: SRP entry points that own and expose the backend
 - `Shaders`: engine-owned placeholder and production shader assets used by the render stack

@@ -1,0 +1,10 @@
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\CMAKEFILES\4D90575F85CEDC03A16C3593A6A0BFCB\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/NRDPlugin.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

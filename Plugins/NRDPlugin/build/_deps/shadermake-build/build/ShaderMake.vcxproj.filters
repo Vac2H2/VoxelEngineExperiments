@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-src\ShaderMake\argparse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-src\ShaderMake\ShaderBlob.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-src\ShaderMake\ShaderMake.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-src\ShaderMake\argparse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-src\ShaderMake\ShaderBlob.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-src\ShaderMake\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{A91311F2-20AB-3AA4-AF7A-4159316706EB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{2F3A3629-5578-39C6-8B77-6DB10BEAC6E4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

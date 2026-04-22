@@ -1,0 +1,14 @@
+# Target labels
+ dxc-populate
+# Source files and their labels
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/dxc-populate
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/9aedb6c72939d4978f1193c8e343b3da/dxc-populate.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/715d470d8b8af354a6298366c8c5310d/dxc-populate-complete.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-build.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-configure.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-download.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-install.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-mkdir.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-patch.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-test.rule
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-subbuild/CMakeFiles/c177999fb21eb0cffbb30105f28a0849/dxc-populate-update.rule

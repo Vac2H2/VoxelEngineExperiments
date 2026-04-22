@@ -1,0 +1,416 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{590FCB26-7902-3606-9A8D-D10E5A0AEB33}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>NRDShaders</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\CMakeFiles\a6c76d3994e7c41569a8a0c1f2db9416\NRDShaders.rule">
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"></Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-build\build\Release\ShaderMake.exe -p DXIL --compiler C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-src/bin/x64/dxc.exe --flatten --stripReflection --WX --sRegShift 0 --bRegShift 2 --uRegShift 3 --tRegShift 20 --headerBlob --allResourcesBound --vulkanVersion 1.2 --sourceDir Shaders --ignoreConfigDir -c Shaders/Shaders.cfg -o C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/_Shaders -I C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/mathlib-src -D NRD_INTERNAL --project NRD --compactProgress
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\NRDShaders</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</VerifyInputsAndOutputsExist>
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'"></Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-build\build\Release\ShaderMake.exe -p DXIL --compiler C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-src/bin/x64/dxc.exe --flatten --stripReflection --WX --sRegShift 0 --bRegShift 2 --uRegShift 3 --tRegShift 20 --headerBlob --allResourcesBound --vulkanVersion 1.2 --sourceDir Shaders --ignoreConfigDir -c Shaders/Shaders.cfg -o C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/_Shaders -I C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/mathlib-src -D NRD_INTERNAL --project NRD --compactProgress
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\NRDShaders</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</VerifyInputsAndOutputsExist>
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'"></Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-build\build\Release\ShaderMake.exe -p DXIL --compiler C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-src/bin/x64/dxc.exe --flatten --stripReflection --WX --sRegShift 0 --bRegShift 2 --uRegShift 3 --tRegShift 20 --headerBlob --allResourcesBound --vulkanVersion 1.2 --sourceDir Shaders --ignoreConfigDir -c Shaders/Shaders.cfg -o C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/_Shaders -I C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/mathlib-src -D NRD_INTERNAL --project NRD --compactProgress
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\NRDShaders</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</VerifyInputsAndOutputsExist>
+      <BuildInParallel Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</BuildInParallel>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'"></Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+cd C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-build\build\Release\ShaderMake.exe -p DXIL --compiler C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/dxc-src/bin/x64/dxc.exe --flatten --stripReflection --WX --sRegShift 0 --bRegShift 2 --uRegShift 3 --tRegShift 20 --headerBlob --allResourcesBound --vulkanVersion 1.2 --sourceDir Shaders --ignoreConfigDir -c Shaders/Shaders.cfg -o C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/_Shaders -I C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/mathlib-src -D NRD_INTERNAL --project NRD --compactProgress
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\NRDShaders</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</VerifyInputsAndOutputsExist>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build --check-stamp-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\CMakeDependentOption.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\download.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\extractfile.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\stepscript.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\FetchContent.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build --check-stamp-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\CMakeDependentOption.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\download.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\extractfile.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\stepscript.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\FetchContent.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build --check-stamp-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\CMakeDependentOption.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\download.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\extractfile.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\stepscript.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\FetchContent.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Apps/Unity/Projects/VoxelEngineExperiments/ThirdParty/NRD/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build --check-stamp-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\CMakeDependentOption.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\download.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\extractfile.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\ExternalProject\stepscript.cmake.in;C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.31\Modules\FetchContent.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Clear.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Clear.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Common.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\NRD.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\NRDConfig.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\Poisson.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Blur.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Blur.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_ClassifyTiles.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_ClassifyTiles.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Common.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Common_SpatialFilter.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Config.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HistoryFix.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HistoryFix.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HitDistReconstruction.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_HitDistReconstruction.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PostBlur.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PostBlur.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PrePass.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_PrePass.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_SplitScreen.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_SplitScreen.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalAccumulation.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalAccumulation.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalStabilization.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_TemporalStabilization.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Validation.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REBLUR_Validation.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_Copy.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_Copy.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_TemporalAccumulation.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\REFERENCE_TemporalAccumulation.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AntiFirefly.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AntiFirefly.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Atrous.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Atrous.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AtrousSmem.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_AtrousSmem.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_ClassifyTiles.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_ClassifyTiles.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Common.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Config.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Copy.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Copy.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryClamping.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryClamping.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryFix.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HistoryFix.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HitDistReconstruction.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_HitDistReconstruction.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_PrePass.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_PrePass.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_SplitScreen.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_SplitScreen.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_TemporalAccumulation.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_TemporalAccumulation.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Validation.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\RELAX_Validation.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Blur.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Blur.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_ClassifyTiles.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_ClassifyTiles.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Common.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Config.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Copy.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_Copy.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SmoothTiles.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SmoothTiles.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SplitScreen.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_SplitScreen.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_TemporalStabilization.cs.hlsl">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Shaders\SIGMA_TemporalStabilization.resources.hlsli">
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\nrd\CMakeFiles\NRDShaders">
+    </None>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\ZERO_CHECK.vcxproj">
+      <Project>{9BDD0FDA-310F-33B7-BD4F-D9866A433F96}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\shadermake-build\ShaderMake.vcxproj">
+      <Project>{40209E24-D664-37F5-AD3B-5622CE160769}</Project>
+      <Name>ShaderMake</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

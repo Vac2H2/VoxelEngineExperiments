@@ -8,8 +8,10 @@ using UnityEngine.Rendering;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.Serialization;
 using VoxelEngine.Data.Voxel;
+using VoxelEngine.Debugging;
 using VoxelEngine.LifeCycle.Manager;
 using VoxelEngine.Render.Cores;
+using VoxelEngine.Render.NRD.Cores;
 using VoxelEngine.Render.RenderBackend;
 using VoxelEngine.Render.RenderPipeline;
 
@@ -21,7 +23,9 @@ namespace VoxelEngine.Render.Debugging
         Normal = 1,
         Depth = 2,
         Motion = 3,
-        Rtao = 4,
+        HitDist = 4,
+        NormHitDist = 5,
+        DenoisedAo = 6,
     }
 
     public static class VoxelGbufferDebugView
@@ -44,15 +48,21 @@ namespace VoxelEngine.Render.Debugging
     [AddComponentMenu("VoxelEngine/Render/Debug/Voxel Gbuffer Debug Overlay")]
     public sealed class VoxelGbufferDebugOverlay : MonoBehaviour
     {
+        private const float SettingsHintHeight = 24.0f;
+        private const float SettingsHintSpacing = 6.0f;
+
         [SerializeField] private Vector2 _panelMargin = new Vector2(16.0f, 16.0f);
         [SerializeField] private float _panelWidth = 360.0f;
         [SerializeField] private int _fontSize = 15;
         [SerializeField] private float _buttonHeight = 28.0f;
+        [SerializeField] private float _maxPanelHeight = 320.0f;
 
+        private GUIStyle _hintStyle;
         private GUIStyle _panelStyle;
         private GUIStyle _headerStyle;
         private GUIStyle _labelStyle;
         private GUIStyle _buttonStyle;
+        private Vector2 _scrollPosition;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureRuntimeInstance()
@@ -77,6 +87,7 @@ namespace VoxelEngine.Render.Debugging
             _panelWidth = Mathf.Max(_panelWidth, 180.0f);
             _fontSize = Mathf.Max(_fontSize, 10);
             _buttonHeight = Mathf.Max(_buttonHeight, 20.0f);
+            _maxPanelHeight = Mathf.Max(_maxPanelHeight, 120.0f);
         }
 
         private void OnGUI()
@@ -87,15 +98,28 @@ namespace VoxelEngine.Render.Debugging
             }
 
             EnsureStyles();
+            DrawSettingsHint();
+
+            if (!VoxelDebugSettingsUiState.IsVisible)
+            {
+                return;
+            }
 
             TryGetActiveRtaoCore(out RtaoCore rtaoCore);
+            TryGetActiveNrdCore(out RtaoDenoiseCore rtaoDenoiseCore);
+            float contentHeight = CalculatePanelContentHeight(rtaoCore != null, rtaoDenoiseCore != null);
+            float panelHeight = Mathf.Min(
+                contentHeight,
+                Mathf.Max(Screen.height - (_panelMargin.y * 2.0f) - SettingsHintHeight - SettingsHintSpacing, 120.0f),
+                _maxPanelHeight);
             Rect panelRect = new Rect(
                 _panelMargin.x,
-                _panelMargin.y,
+                _panelMargin.y + SettingsHintHeight + SettingsHintSpacing,
                 _panelWidth,
-                rtaoCore != null ? 172.0f : 118.0f);
+                panelHeight);
 
             GUILayout.BeginArea(panelRect, GUIContent.none, _panelStyle);
+            _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, false, contentHeight > panelHeight);
             GUILayout.Label("Voxel G-buffer", _headerStyle);
             GUILayout.Label($"Showing: {VoxelGbufferDebugView.PreviewTarget}", _labelStyle);
 
@@ -105,7 +129,13 @@ namespace VoxelEngine.Render.Debugging
             DrawPreviewButton("Normal", VoxelGbufferPreviewTarget.Normal);
             DrawPreviewButton("Depth", VoxelGbufferPreviewTarget.Depth);
             DrawPreviewButton("Motion", VoxelGbufferPreviewTarget.Motion);
-            DrawPreviewButton("RTAO", VoxelGbufferPreviewTarget.Rtao);
+            DrawPreviewButton("HitDist", VoxelGbufferPreviewTarget.HitDist);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4.0f);
+            GUILayout.BeginHorizontal();
+            DrawPreviewButton("NormHitDist", VoxelGbufferPreviewTarget.NormHitDist);
+            DrawPreviewButton("DenoisedAO", VoxelGbufferPreviewTarget.DenoisedAo);
             GUILayout.EndHorizontal();
 
             GUILayout.Space(8.0f);
@@ -116,17 +146,45 @@ namespace VoxelEngine.Render.Debugging
 
             if (rtaoCore != null)
             {
+                if (rtaoDenoiseCore != null)
+                {
+                    GUILayout.Space(8.0f);
+                    string backendLabel = rtaoDenoiseCore.NativeBackendActive
+                        ? "Native"
+                        : (rtaoDenoiseCore.StrictNativeBackend ? "Unavailable" : "Fallback");
+                    string strictLabel = rtaoDenoiseCore.StrictNativeBackend ? "On" : "Off";
+                    GUILayout.Label($"NRD Backend: {backendLabel} | Strict: {strictLabel}", _labelStyle);
+                }
+
                 GUILayout.Space(8.0f);
-                GUILayout.Label($"RTAO RPP: {rtaoCore.RaysPerPixel}", _labelStyle);
+                GUILayout.Label($"RTAO Resolution: {rtaoCore.ResolutionMode}", _labelStyle);
                 GUILayout.BeginHorizontal();
-                DrawRtaoRppButton(rtaoCore, 1);
-                DrawRtaoRppButton(rtaoCore, 2);
-                DrawRtaoRppButton(rtaoCore, 4);
-                DrawRtaoRppButton(rtaoCore, 8);
+                DrawResolutionButton(rtaoCore, RtaoResolutionMode.Full, "Full");
+                DrawResolutionButton(rtaoCore, RtaoResolutionMode.Half, "Half");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(6.0f);
+                GUILayout.Label($"HitDist RPP: {rtaoCore.AmbientRaysPerPixel}", _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawAmbientRtaoRppButton(rtaoCore, 1);
+                DrawAmbientRtaoRppButton(rtaoCore, 2);
+                DrawAmbientRtaoRppButton(rtaoCore, 4);
+                DrawAmbientRtaoRppButton(rtaoCore, 8);
                 GUILayout.EndHorizontal();
             }
 
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
+        }
+
+        private void DrawSettingsHint()
+        {
+            Rect hintRect = new Rect(
+                _panelMargin.x,
+                _panelMargin.y,
+                Mathf.Min(_panelWidth, 220.0f),
+                SettingsHintHeight);
+            GUI.Label(hintRect, VoxelDebugSettingsUiState.ToggleHintLabel, _hintStyle);
         }
 
         private void DrawPreviewButton(string label, VoxelGbufferPreviewTarget target)
@@ -145,24 +203,62 @@ namespace VoxelEngine.Render.Debugging
             GUI.backgroundColor = originalColor;
         }
 
-        private void DrawRtaoRppButton(RtaoCore rtaoCore, int raysPerPixel)
+        private void DrawAmbientRtaoRppButton(RtaoCore rtaoCore, int raysPerPixel)
         {
             Color originalColor = GUI.backgroundColor;
-            if (rtaoCore.RaysPerPixel == raysPerPixel)
+            if (rtaoCore.AmbientRaysPerPixel == raysPerPixel)
             {
                 GUI.backgroundColor = new Color(0.35f, 0.7f, 0.95f, 1.0f);
             }
 
             if (GUILayout.Button($"{raysPerPixel} RPP", _buttonStyle, GUILayout.Height(_buttonHeight)))
             {
-                rtaoCore.RaysPerPixel = raysPerPixel;
+                rtaoCore.AmbientRaysPerPixel = raysPerPixel;
             }
 
             GUI.backgroundColor = originalColor;
         }
 
+        private void DrawResolutionButton(RtaoCore rtaoCore, RtaoResolutionMode resolutionMode, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (rtaoCore.ResolutionMode == resolutionMode)
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                rtaoCore.ResolutionMode = resolutionMode;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private float CalculatePanelContentHeight(bool hasRtaoControls, bool hasNrdControls)
+        {
+            if (!hasRtaoControls)
+            {
+                return 124.0f;
+            }
+
+            return hasNrdControls ? 312.0f : 284.0f;
+        }
+
         private void EnsureStyles()
         {
+            int hintFontSize = Mathf.Max(_fontSize - 2, 10);
+            if (_hintStyle == null || _hintStyle.fontSize != hintFontSize)
+            {
+                _hintStyle = new GUIStyle(GUI.skin.box)
+                {
+                    alignment = TextAnchor.MiddleLeft,
+                    fontSize = hintFontSize,
+                    padding = new RectOffset(8, 8, 4, 4)
+                };
+                _hintStyle.normal.textColor = new Color(0.92f, 0.95f, 1.0f, 1.0f);
+            }
+
             if (_panelStyle == null)
             {
                 _panelStyle = new GUIStyle(GUI.skin.box)
@@ -226,6 +322,33 @@ namespace VoxelEngine.Render.Debugging
             if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.RtaoCore != null)
             {
                 rtaoCore = asset.RtaoCore;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetActiveNrdCore(out RtaoDenoiseCore rtaoDenoiseCore)
+        {
+            rtaoDenoiseCore = null;
+
+            try
+            {
+                if (RenderPipelineManager.currentPipeline is VoxelEngineRenderPipeline renderPipeline &&
+                    renderPipeline.Asset != null &&
+                    renderPipeline.Asset.RtaoDenoiseCore != null)
+                {
+                    rtaoDenoiseCore = renderPipeline.Asset.RtaoDenoiseCore;
+                    return true;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.RtaoDenoiseCore != null)
+            {
+                rtaoDenoiseCore = asset.RtaoDenoiseCore;
                 return true;
             }
 

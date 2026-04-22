@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\ml.h">
+      <Filter>MathLib</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\ml.hlsli">
+      <Filter>MathLib</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\bool1.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\conversion.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\emulation.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\f32.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\f64.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\fsmall.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\i32.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\math.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\other.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\packing.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\sorting.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\swizzle.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\tests.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+    <None Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\mathlib-src\Guts\u32.h">
+      <Filter>MathLib\Guts</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="MathLib">
+      <UniqueIdentifier>{02D69482-6157-3675-B626-760187DB0FC8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MathLib\Guts">
+      <UniqueIdentifier>{95A9177C-8502-3CB7-B449-F881E90AFF7D}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

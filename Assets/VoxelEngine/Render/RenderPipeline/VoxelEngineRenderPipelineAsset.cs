@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using VoxelEngine.Render.Cores;
+using VoxelEngine.Render.NRD.Cores;
 
 namespace VoxelEngine.Render.RenderPipeline
 {
@@ -14,10 +15,14 @@ namespace VoxelEngine.Render.RenderPipeline
         [SerializeField] private Material _rayTracingMaterial;
         [SerializeField] private GbufferCore _gbufferCore = new GbufferCore();
         [SerializeField] private RtaoCore _rtaoCore = new RtaoCore();
+        [SerializeField] private bool _enableRtaoDenoiseInSrp;
+        [SerializeField] private RtaoDenoiseCore _rtaoDenoiseCore = new RtaoDenoiseCore();
 
         public Material RayTracingMaterial => _rayTracingMaterial;
         public GbufferCore GbufferCore => _gbufferCore ?? (_gbufferCore = new GbufferCore());
         public RtaoCore RtaoCore => _rtaoCore ?? (_rtaoCore = new RtaoCore());
+        public bool EnableRtaoDenoiseInSrp => _enableRtaoDenoiseInSrp;
+        public RtaoDenoiseCore RtaoDenoiseCore => _rtaoDenoiseCore ?? (_rtaoDenoiseCore = new RtaoDenoiseCore());
 
         public override string renderPipelineShaderTag => RenderPipelineShaderTagValue;
 
@@ -40,6 +45,7 @@ namespace VoxelEngine.Render.RenderPipeline
             base.OnValidate();
             _gbufferCore ??= new GbufferCore();
             _rtaoCore ??= new RtaoCore();
+            _rtaoDenoiseCore ??= new RtaoDenoiseCore();
             _rtaoCore.EditorAutoAssignDependencies();
         }
 #endif

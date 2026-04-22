@@ -3,6 +3,7 @@
 
 #define VOXEL_ENGINE_INCLUDE_HIT_SHADERS 0
 #include "VoxelProceduralShaderShared.hlsl"
+#include "NRD/Vendor/NRD.hlsli"
 
 RaytracingAccelerationStructure _RaytracingAccelerationStructure;
 uint _AllInstanceMask;
@@ -23,6 +24,7 @@ float _RayTMax;
 RWTexture2D<float4> _VoxelEngineGbufferAlbedo;
 RWTexture2D<float4> _VoxelEngineGbufferNormal;
 RWTexture2D<float> _VoxelEngineGbufferDepth;
+RWTexture2D<float> _VoxelEngineGbufferViewZ;
 RWTexture2D<float4> _VoxelEngineGbufferMotion;
 
 static const float kSecondaryRayTOffset = 1e-4;
@@ -44,19 +46,21 @@ float4 DecodeAlbedo(uint packedAlbedo)
     return float4(SrgbToLinear(srgb), alpha);
 }
 
-float4 EncodeWorldNormal(float3 normalWS)
+float ResolveLinearRoughness()
 {
-    return float4((normalize(normalWS) * 0.5) + 0.5, 0.0);
+    // Temporary default until voxel materials expose per-surface roughness.
+    return 1.0;
 }
 
-float ComputeLinearViewDepth(float hitT, float3 rayDirectionWS)
+float ComputeDepthValue(float hitT)
 {
-    return max(hitT * dot(rayDirectionWS, _CameraForwardWS), 0.0);
+    return max(hitT, 0.0);
 }
 
-float ComputeNormalizedLinearViewDepth(float hitT, float3 rayDirectionWS)
+float ComputeLinearViewZ(float3 positionWS, float3 cameraPositionWS, float3 cameraForwardWS)
 {
-    return saturate(ComputeLinearViewDepth(hitT, rayDirectionWS) / max(_RayTMax, 1e-6));
+    // NRD expects linear view-space Z for the primary surface, not NDC z and not hardware depth.
+    return max(dot(positionWS - cameraPositionWS, cameraForwardWS), 0.0);
 }
 
 float2 ComputeUvFromClip(float4 clipPosition)
@@ -145,28 +149,31 @@ void RayGenMain()
         ? DecodeAlbedo(surfacePayload.packedAlbedo)
         : _BackgroundColor;
     float4 normal = HasHit(surfacePayload)
-        ? EncodeWorldNormal(surfacePayload.worldNormal)
+        ? NRD_FrontEnd_PackNormalAndRoughness(surfacePayload.worldNormal, ResolveLinearRoughness(), 0.0)
         : 0.0;
     float depth = HasHit(surfacePayload)
-        ? ComputeNormalizedLinearViewDepth(surfacePayload.hitT, ray.Direction)
+        ? ComputeDepthValue(surfacePayload.hitT)
         : 0.0;
+    float viewZ = _RayTMax + 1.0;
     float4 motion = 0.0;
 
     if (HasHit(surfacePayload))
     {
-        float currentViewDepth = ComputeLinearViewDepth(surfacePayload.hitT, ray.Direction);
         float3 positionWS = ray.Origin + (ray.Direction * surfacePayload.hitT);
+        float currentViewDepth = ComputeLinearViewZ(positionWS, _CameraPositionWS, _CameraForwardWS);
+        viewZ = currentViewDepth;
         float4 currentClip = mul(_CurrentWorldToClip, float4(positionWS, 1.0));
         float4 previousClip = mul(_PreviousWorldToClip, float4(positionWS, 1.0));
         float2 currentUv = ComputeUvFromClip(currentClip);
         float2 previousUv = ComputeUvFromClip(previousClip);
-        float previousViewDepth = max(dot(positionWS - _PreviousCameraPositionWS, _PreviousCameraForwardWS), 0.0);
+        float previousViewDepth = ComputeLinearViewZ(positionWS, _PreviousCameraPositionWS, _PreviousCameraForwardWS);
         motion.xyz = float3(previousUv - currentUv, previousViewDepth - currentViewDepth);
     }
 
     _VoxelEngineGbufferAlbedo[pixel] = albedo;
     _VoxelEngineGbufferNormal[pixel] = normal;
     _VoxelEngineGbufferDepth[pixel] = depth;
+    _VoxelEngineGbufferViewZ[pixel] = viewZ;
     _VoxelEngineGbufferMotion[pixel] = motion;
 }
 

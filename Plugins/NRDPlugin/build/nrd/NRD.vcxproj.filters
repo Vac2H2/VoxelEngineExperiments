@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\InstanceImpl.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Reblur.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Reference.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Relax.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Sigma.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Timer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Wrapper.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\InstanceImpl.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\StdAllocator.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Timer.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_Diffuse.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_DiffuseDirectionalOcclusion.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_DiffuseOcclusion.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_DiffuseSh.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_DiffuseSpecular.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_DiffuseSpecularOcclusion.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_DiffuseSpecularSh.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_Specular.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_SpecularOcclusion.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reblur_SpecularSh.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Reference.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Relax_Diffuse.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Relax_DiffuseSh.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Relax_DiffuseSpecular.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Relax_DiffuseSpecularSh.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Relax_Specular.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Relax_SpecularSh.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Sigma_Shadow.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Source\Denoisers\Sigma_ShadowTranslucency.hpp">
+      <Filter>Denoisers</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Resources\Version.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Include\NRD.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Include\NRDDescs.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Include\NRDSettings.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\ThirdParty\NRD\Resources\NRD.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Denoisers">
+      <UniqueIdentifier>{888E04DD-2342-3B8C-B106-167D1E77A0BE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include">
+      <UniqueIdentifier>{76BECE54-1E54-3563-A2C5-C60A71D42859}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{24E2AE7E-73A6-3CF8-9A1E-734BF01BCC4D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{F27CFFBC-4E20-36E7-9BD6-26245F9705A3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

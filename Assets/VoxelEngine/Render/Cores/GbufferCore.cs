@@ -13,11 +13,14 @@ namespace VoxelEngine.Render.Cores
         public static readonly int AlbedoTextureId = Shader.PropertyToID("_VoxelEngineGbufferAlbedo");
         public static readonly int NormalTextureId = Shader.PropertyToID("_VoxelEngineGbufferNormal");
         public static readonly int DepthTextureId = Shader.PropertyToID("_VoxelEngineGbufferDepth");
+        public static readonly int ViewZTextureId = Shader.PropertyToID("_VoxelEngineGbufferViewZ");
         public static readonly int MotionTextureId = Shader.PropertyToID("_VoxelEngineGbufferMotion");
+        public static readonly int CameraFarClipId = Shader.PropertyToID("_VoxelEngineCameraFarClip");
 
         public static RenderTargetIdentifier AlbedoTarget => new RenderTargetIdentifier(AlbedoTextureId);
         public static RenderTargetIdentifier NormalTarget => new RenderTargetIdentifier(NormalTextureId);
         public static RenderTargetIdentifier DepthTarget => new RenderTargetIdentifier(DepthTextureId);
+        public static RenderTargetIdentifier ViewZTarget => new RenderTargetIdentifier(ViewZTextureId);
         public static RenderTargetIdentifier MotionTarget => new RenderTargetIdentifier(MotionTextureId);
     }
 
@@ -44,13 +47,21 @@ namespace VoxelEngine.Render.Cores
         private static readonly int DebugAabbOverlayInstanceMaskId = Shader.PropertyToID("_DebugAabbOverlayInstanceMask");
 
         [NonSerialized] private readonly Dictionary<int, CameraHistory> _historyByCameraId = new Dictionary<int, CameraHistory>();
+        [NonSerialized] private RenderTexture _normalTexture;
+        [NonSerialized] private RenderTexture _viewZTexture;
+        [NonSerialized] private RenderTexture _motionTexture;
 
         [SerializeField] private RayTracingShader _rayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
         [SerializeField] private GraphicsFormat _albedoFormat = GraphicsFormat.None;
         [SerializeField] private GraphicsFormat _normalFormat = GraphicsFormat.None;
         [SerializeField] private GraphicsFormat _depthFormat = GraphicsFormat.None;
+        [SerializeField] private GraphicsFormat _viewZFormat = GraphicsFormat.None;
         [SerializeField] private GraphicsFormat _motionFormat = GraphicsFormat.None;
+
+        public RenderTexture NormalTexture => _normalTexture;
+        public RenderTexture ViewZTexture => _viewZTexture;
+        public RenderTexture MotionTexture => _motionTexture;
 
         public bool Record(
             CommandBuffer commandBuffer,
@@ -90,7 +101,7 @@ namespace VoxelEngine.Render.Cores
                 ? storedHistory
                 : currentHistory;
 
-            AllocateTemporaryTargets(commandBuffer, width, height);
+            AllocateFrameTargets(commandBuffer, width, height);
 
             try
             {
@@ -173,15 +184,19 @@ namespace VoxelEngine.Render.Cores
                 commandBuffer.SetRayTracingTextureParam(
                     _rayTracingShader,
                     VoxelGbufferIds.NormalTextureId,
-                    VoxelGbufferIds.NormalTarget);
+                    _normalTexture);
                 commandBuffer.SetRayTracingTextureParam(
                     _rayTracingShader,
                     VoxelGbufferIds.DepthTextureId,
                     VoxelGbufferIds.DepthTarget);
                 commandBuffer.SetRayTracingTextureParam(
                     _rayTracingShader,
+                    VoxelGbufferIds.ViewZTextureId,
+                    _viewZTexture);
+                commandBuffer.SetRayTracingTextureParam(
+                    _rayTracingShader,
                     VoxelGbufferIds.MotionTextureId,
-                    VoxelGbufferIds.MotionTarget);
+                    _motionTexture);
                 commandBuffer.DispatchRays(
                     _rayTracingShader,
                     RayGenerationShaderName,
@@ -190,9 +205,11 @@ namespace VoxelEngine.Render.Cores
                     1u,
                     camera);
                 commandBuffer.SetGlobalTexture(VoxelGbufferIds.AlbedoTextureId, VoxelGbufferIds.AlbedoTarget);
-                commandBuffer.SetGlobalTexture(VoxelGbufferIds.NormalTextureId, VoxelGbufferIds.NormalTarget);
+                commandBuffer.SetGlobalTexture(VoxelGbufferIds.NormalTextureId, _normalTexture);
                 commandBuffer.SetGlobalTexture(VoxelGbufferIds.DepthTextureId, VoxelGbufferIds.DepthTarget);
-                commandBuffer.SetGlobalTexture(VoxelGbufferIds.MotionTextureId, VoxelGbufferIds.MotionTarget);
+                commandBuffer.SetGlobalTexture(VoxelGbufferIds.ViewZTextureId, _viewZTexture);
+                commandBuffer.SetGlobalTexture(VoxelGbufferIds.MotionTextureId, _motionTexture);
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.CameraFarClipId, rayTMax);
                 RememberHistory(camera, currentHistory);
                 return true;
             }
@@ -211,29 +228,44 @@ namespace VoxelEngine.Render.Cores
             }
 
             commandBuffer.ReleaseTemporaryRT(VoxelGbufferIds.AlbedoTextureId);
-            commandBuffer.ReleaseTemporaryRT(VoxelGbufferIds.NormalTextureId);
             commandBuffer.ReleaseTemporaryRT(VoxelGbufferIds.DepthTextureId);
-            commandBuffer.ReleaseTemporaryRT(VoxelGbufferIds.MotionTextureId);
         }
 
-        private void AllocateTemporaryTargets(CommandBuffer commandBuffer, int width, int height)
+        public void Dispose()
+        {
+            ReleasePersistentTexture(ref _normalTexture);
+            ReleasePersistentTexture(ref _viewZTexture);
+            ReleasePersistentTexture(ref _motionTexture);
+        }
+
+        private void AllocateFrameTargets(CommandBuffer commandBuffer, int width, int height)
         {
             commandBuffer.GetTemporaryRT(
                 VoxelGbufferIds.AlbedoTextureId,
                 CreateTextureDescriptor(width, height, ResolveAlbedoFormat()),
                 FilterMode.Point);
             commandBuffer.GetTemporaryRT(
-                VoxelGbufferIds.NormalTextureId,
-                CreateTextureDescriptor(width, height, ResolveNormalFormat()),
-                FilterMode.Point);
-            commandBuffer.GetTemporaryRT(
                 VoxelGbufferIds.DepthTextureId,
                 CreateTextureDescriptor(width, height, ResolveDepthFormat()),
                 FilterMode.Point);
-            commandBuffer.GetTemporaryRT(
-                VoxelGbufferIds.MotionTextureId,
-                CreateTextureDescriptor(width, height, ResolveMotionFormat()),
-                FilterMode.Point);
+            EnsurePersistentTexture(
+                ref _normalTexture,
+                width,
+                height,
+                ResolveNormalFormat(),
+                "_VoxelEngineGbufferNormal");
+            EnsurePersistentTexture(
+                ref _viewZTexture,
+                width,
+                height,
+                ResolveViewZFormat(),
+                "_VoxelEngineGbufferViewZ");
+            EnsurePersistentTexture(
+                ref _motionTexture,
+                width,
+                height,
+                ResolveMotionFormat(),
+                "_VoxelEngineGbufferMotion");
         }
 
         private string ResolveShaderPassName()
@@ -277,8 +309,15 @@ namespace VoxelEngine.Render.Cores
         private GraphicsFormat ResolveDepthFormat()
         {
             return _depthFormat == GraphicsFormat.None
-                ? GraphicsFormat.R16_UNorm
+                ? GraphicsFormat.R16_SFloat
                 : _depthFormat;
+        }
+
+        private GraphicsFormat ResolveViewZFormat()
+        {
+            return _viewZFormat == GraphicsFormat.None
+                ? GraphicsFormat.R16_SFloat
+                : _viewZFormat;
         }
 
         private GraphicsFormat ResolveMotionFormat()
@@ -286,6 +325,55 @@ namespace VoxelEngine.Render.Cores
             return _motionFormat == GraphicsFormat.None
                 ? GraphicsFormat.R16G16B16A16_SFloat
                 : _motionFormat;
+        }
+
+        private static void EnsurePersistentTexture(
+            ref RenderTexture renderTexture,
+            int width,
+            int height,
+            GraphicsFormat graphicsFormat,
+            string name)
+        {
+            bool needsRecreate =
+                renderTexture == null ||
+                renderTexture.width != width ||
+                renderTexture.height != height ||
+                renderTexture.graphicsFormat != graphicsFormat;
+
+            if (!needsRecreate)
+            {
+                return;
+            }
+
+            ReleasePersistentTexture(ref renderTexture);
+            renderTexture = new RenderTexture(CreateTextureDescriptor(width, height, graphicsFormat))
+            {
+                name = name,
+                hideFlags = HideFlags.HideAndDontSave,
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            renderTexture.Create();
+        }
+
+        private static void ReleasePersistentTexture(ref RenderTexture renderTexture)
+        {
+            if (renderTexture == null)
+            {
+                return;
+            }
+
+            renderTexture.Release();
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(renderTexture);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(renderTexture);
+            }
+
+            renderTexture = null;
         }
 
         private bool TryGetPreviousHistory(Camera camera, out CameraHistory history)

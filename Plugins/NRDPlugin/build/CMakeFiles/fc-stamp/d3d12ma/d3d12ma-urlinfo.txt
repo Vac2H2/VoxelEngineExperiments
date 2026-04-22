@@ -1,0 +1,12 @@
+# This is a generated file and its contents are an internal implementation detail.
+# The download step will be re-executed if anything in this file changes.
+# No other meaning or use of this file is supported.
+
+method=url
+command=C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/fc-stamp/d3d12ma/download-d3d12ma.cmake;COMMAND;C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/fc-stamp/d3d12ma/verify-d3d12ma.cmake;COMMAND;C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe;-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE;-P;C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/fc-stamp/d3d12ma/extract-d3d12ma.cmake
+source_dir=C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/d3d12ma-src
+work_dir=C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps
+url(s)=https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator/archive/c06cd9a6ec4578016aadf650af104c4055ec609a.zip
+hash=
+      no_extract=
+

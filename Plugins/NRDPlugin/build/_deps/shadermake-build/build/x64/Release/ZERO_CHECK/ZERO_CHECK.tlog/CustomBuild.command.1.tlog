@@ -1,0 +1,10 @@
+^C:\APPS\UNITY\PROJECTS\VOXELENGINEEXPERIMENTS\PLUGINS\NRDPLUGIN\BUILD\_DEPS\SHADERMAKE-BUILD\BUILD\CMAKEFILES\2D7C454D08F9E035A1E352E29C0D6375\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-src/ShaderMake -BC:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/build/ShaderMake.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

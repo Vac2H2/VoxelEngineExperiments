@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Source\Creation\Creation.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\NRI.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\NRIDescs.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\NRIMacro.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Resources\Version.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIDeviceCreation.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIHelper.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIImgui.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRILowLatency.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIMeshShader.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIRayTracing.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIStreamer.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRISwapChain.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIUpscaler.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIWrapperD3D11.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIWrapperD3D12.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\Extensions\NRIWrapperVK.h">
+      <Filter>Include\Extensions</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <FXCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Include\NRI.hlsl">
+      <Filter>Include</Filter>
+    </FXCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\nri.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="C:\Apps\Unity\Projects\VoxelEngineExperiments\Plugins\NRDPlugin\build\_deps\nri-src\Resources\NRI.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{76BECE54-1E54-3563-A2C5-C60A71D42859}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include\Extensions">
+      <UniqueIdentifier>{93198F70-AC62-3556-830F-E0ADBF746854}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{24E2AE7E-73A6-3CF8-9A1E-734BF01BCC4D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{49552EAE-EEBA-3CC8-B12F-21ABEEB73460}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

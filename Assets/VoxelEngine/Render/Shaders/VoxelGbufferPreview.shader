@@ -20,10 +20,20 @@ Shader "Hidden/VoxelEngine/Rendering/GbufferPreview"
             sampler2D _VoxelEngineGbufferNormal;
             sampler2D_float _VoxelEngineGbufferDepth;
             sampler2D_float _VoxelEngineGbufferMotion;
+            sampler2D_float _VoxelEngineHitDist;
             sampler2D_float _VoxelEngineRtao;
+            sampler2D _VoxelEngineNrdPackedDiffuseHitDistance;
+            sampler2D_float _VoxelEngineNrdDenoisedAo;
 
             float _VoxelEngineGbufferPreviewMode;
-            float _VoxelEngineRtaoMaxDistance;
+            float _VoxelEngineCameraFarClip;
+            float _VoxelEngineRtaoHitDistanceMax;
+            float _VoxelEngineNrdPreviewAvailable;
+
+            float VisualizeHitDistance(float hitDistance)
+            {
+                return saturate(hitDistance / max(_VoxelEngineRtaoHitDistanceMax, 1e-6));
+            }
 
             float4 frag(v2f_img input) : SV_Target
             {
@@ -46,7 +56,7 @@ Shader "Hidden/VoxelEngine/Rendering/GbufferPreview"
                     return 0.0;
                 }
 
-                float preview = saturate(depth);
+                float preview = saturate(depth / max(_VoxelEngineCameraFarClip, 1e-6));
                 if (_VoxelEngineGbufferPreviewMode < 2.5)
                 {
                     return float4(preview, preview, preview, 1.0);
@@ -66,14 +76,30 @@ Shader "Hidden/VoxelEngine/Rendering/GbufferPreview"
                         1.0);
                 }
 
-                float aoDistance = tex2D(_VoxelEngineRtao, input.uv).r;
                 if (!hasSurface)
                 {
                     return 0.0;
                 }
 
-                float aoPreview = saturate(aoDistance / max(_VoxelEngineRtaoMaxDistance, 1e-6));
-                return float4(aoPreview, aoPreview, aoPreview, 1.0);
+                if (_VoxelEngineGbufferPreviewMode < 4.5)
+                {
+                    float hitDistance = tex2D(_VoxelEngineHitDist, input.uv).r;
+                    float previewHitDistance = VisualizeHitDistance(hitDistance);
+                    return float4(previewHitDistance, previewHitDistance, previewHitDistance, 1.0);
+                }
+
+                if (_VoxelEngineGbufferPreviewMode < 5.5)
+                {
+                    float normHitDistance = _VoxelEngineNrdPreviewAvailable > 0.5
+                        ? tex2D(_VoxelEngineNrdPackedDiffuseHitDistance, input.uv).r
+                        : 0.0;
+                    return float4(normHitDistance, normHitDistance, normHitDistance, 1.0);
+                }
+
+                float denoisedAo = _VoxelEngineNrdPreviewAvailable > 0.5
+                    ? tex2D(_VoxelEngineNrdDenoisedAo, input.uv).r
+                    : tex2D(_VoxelEngineRtao, input.uv).r;
+                return float4(denoisedAo, denoisedAo, denoisedAo, 1.0);
             }
             ENDCG
         }

@@ -1,0 +1,15 @@
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/NRDPlugin.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/ALL_BUILD.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/CMakeFiles/ZERO_CHECK.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/NRD.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/NRDShaders.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/nrd/CMakeFiles/ALL_BUILD.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/CMakeFiles/ShaderMakeBlob.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/CMakeFiles/ShaderMake.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/CMakeFiles/ShaderMake-build.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/CMakeFiles/ALL_BUILD.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/mathlib-build/CMakeFiles/MathLib.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/nri-build/CMakeFiles/NRI_Shared.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/nri-build/CMakeFiles/NRI_D3D12.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/nri-build/CMakeFiles/NRI.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/nri-build/CMakeFiles/ALL_BUILD.dir

@@ -1,0 +1,3 @@
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/build/CMakeFiles/ShaderMake.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/build/CMakeFiles/ALL_BUILD.dir
+C:/Apps/Unity/Projects/VoxelEngineExperiments/Plugins/NRDPlugin/build/_deps/shadermake-build/build/CMakeFiles/ZERO_CHECK.dir

@@ -1,0 +1,86 @@
+cmake_minimum_required(VERSION 3.22)
+project(NRDPlugin LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(UNITY_PLUGIN_API_DIR "C:/Program Files/Unity/Hub/Editor/6000.3.10f1/Editor/Data/PluginAPI" CACHE PATH "Path to the Unity PluginAPI directory")
+if(NOT EXISTS "${UNITY_PLUGIN_API_DIR}/IUnityGraphics.h")
+    message(FATAL_ERROR "Unity PluginAPI headers were not found. Set UNITY_PLUGIN_API_DIR to your Unity Editor/Data/PluginAPI directory.")
+endif()
+
+set(NRD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../ThirdParty/NRD")
+if(NOT EXISTS "${NRD_ROOT}/CMakeLists.txt")
+    message(FATAL_ERROR "Official NRD sources were not found at ${NRD_ROOT}. Vendor NVIDIA-RTX/NRD into ThirdParty/NRD first.")
+endif()
+
+set(UNITY_RUNTIME_PLUGIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../Assets/Plugins/x86_64")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../x86_64")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../x86_64")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
+
+set(NRD_STATIC_LIBRARY ON CACHE BOOL "" FORCE)
+set(NRD_NRI ON CACHE BOOL "" FORCE)
+set(NRD_NORMAL_ENCODING 0 CACHE STRING "" FORCE)
+set(NRD_ROUGHNESS_ENCODING 1 CACHE STRING "" FORCE)
+set(NRD_EMBEDS_DXIL_SHADERS ON CACHE BOOL "" FORCE)
+set(NRD_EMBEDS_DXBC_SHADERS OFF CACHE BOOL "" FORCE)
+set(NRD_EMBEDS_SPIRV_SHADERS OFF CACHE BOOL "" FORCE)
+set(NRI_STATIC_LIBRARY ON CACHE BOOL "" FORCE)
+set(NRI_ENABLE_D3D12_SUPPORT ON CACHE BOOL "" FORCE)
+set(NRI_ENABLE_D3D11_SUPPORT OFF CACHE BOOL "" FORCE)
+set(NRI_ENABLE_VK_SUPPORT OFF CACHE BOOL "" FORCE)
+set(NRI_ENABLE_VALIDATION_SUPPORT OFF CACHE BOOL "" FORCE)
+set(NRI_ENABLE_AGILITY_SDK_SUPPORT ON CACHE BOOL "" FORCE)
+set(NRI_ENABLE_NVAPI OFF CACHE BOOL "" FORCE)
+set(NRI_ENABLE_AMDAGS OFF CACHE BOOL "" FORCE)
+set(NRI_ENABLE_NVTX_SUPPORT OFF CACHE BOOL "" FORCE)
+set(NRI_ENABLE_NONE_SUPPORT OFF CACHE BOOL "" FORCE)
+
+add_subdirectory("${NRD_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/nrd")
+
+add_library(NRDPlugin SHARED
+    src/NrdPlugin.cpp
+    include/NrdPluginAPI.h
+)
+
+target_compile_definitions(NRDPlugin
+    PRIVATE
+        NRD_PLUGIN_EXPORTS
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+)
+
+target_include_directories(NRDPlugin
+    PRIVATE
+        include
+        "${UNITY_PLUGIN_API_DIR}"
+)
+
+target_link_libraries(NRDPlugin
+    PRIVATE
+        NRD
+        NRDIntegration
+        NRI
+)
+
+target_link_libraries(NRDPlugin
+    PRIVATE
+        d3d12
+        dxgi
+)
+
+set_target_properties(NRDPlugin PROPERTIES
+    OUTPUT_NAME "NRDPlugin"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../x86_64"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/../x86_64"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/../x86_64"
+)
+
+add_custom_command(TARGET NRDPlugin POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${UNITY_RUNTIME_PLUGIN_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:NRDPlugin>"
+        "${UNITY_RUNTIME_PLUGIN_DIR}/$<TARGET_FILE_NAME:NRDPlugin>"
+)

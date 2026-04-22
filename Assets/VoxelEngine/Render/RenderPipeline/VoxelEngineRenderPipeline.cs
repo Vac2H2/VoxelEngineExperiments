@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using VoxelEngine.Render.Cores;
 using VoxelEngine.Render.Debugging;
+using VoxelEngine.Render.NRD.Cores;
 using VoxelEngine.Render.RenderBackend;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -31,6 +32,8 @@ namespace VoxelEngine.Render.RenderPipeline
         private readonly VoxelEngineRenderBackend _renderBackend;
         private readonly GbufferCore _gbufferCore;
         private readonly RtaoCore _rtaoCore;
+        private readonly bool _enableRtaoDenoiseInSrp;
+        private readonly RtaoDenoiseCore _rtaoDenoiseCore;
         private Material _gbufferPreviewMaterial;
         private bool _isDisposed;
 
@@ -50,6 +53,8 @@ namespace VoxelEngine.Render.RenderPipeline
             _renderBackend = renderBackend ?? throw new ArgumentNullException(nameof(renderBackend));
             _gbufferCore = asset.GbufferCore;
             _rtaoCore = asset.RtaoCore;
+            _enableRtaoDenoiseInSrp = asset.EnableRtaoDenoiseInSrp;
+            _rtaoDenoiseCore = asset.RtaoDenoiseCore;
         }
 
         public VoxelEngineRenderPipeline(VoxelEngineRenderBackend renderBackend, GbufferCore gbufferCore)
@@ -121,6 +126,9 @@ namespace VoxelEngine.Render.RenderPipeline
             if (!_isDisposed && disposing)
             {
                 DestroyMaterial(ref _gbufferPreviewMaterial);
+                _gbufferCore?.Dispose();
+                _rtaoCore?.Dispose();
+                _rtaoDenoiseCore?.Dispose();
                 _renderBackend.Dispose();
             }
 
@@ -151,9 +159,12 @@ namespace VoxelEngine.Render.RenderPipeline
             {
                 name = nameof(VoxelEngineRenderPipeline)
             };
+            CommandBuffer denoiseCommandBuffer = null;
 
             try
             {
+                commandBuffer.SetGlobalFloat(VoxelNrdIds.PreviewAvailableId, 0.0f);
+
                 GetClearFlags(camera, out bool clearDepth, out bool clearColor);
                 if (clearDepth || clearColor)
                 {
@@ -165,7 +176,26 @@ namespace VoxelEngine.Render.RenderPipeline
 
                 if (_gbufferCore != null && _gbufferCore.Record(commandBuffer, camera, _renderBackend))
                 {
-                    bool recordedRtao = _rtaoCore != null && _rtaoCore.Record(commandBuffer, camera, _renderBackend);
+                    bool recordedRtao = _rtaoCore != null && _rtaoCore.Record(commandBuffer, camera, _renderBackend, _gbufferCore);
+                    bool wantsDenoisedAoPreview = VoxelGbufferDebugView.PreviewTarget == VoxelGbufferPreviewTarget.DenoisedAo;
+                    bool needsDeferredDenoise = recordedRtao &&
+                                               _rtaoDenoiseCore != null &&
+                                               (_enableRtaoDenoiseInSrp || wantsDenoisedAoPreview);
+                    bool boundDenoisedAoPreview = recordedRtao &&
+                                                  wantsDenoisedAoPreview &&
+                                                  _rtaoDenoiseCore != null &&
+                                                  _rtaoDenoiseCore.BindLatestDenoisedAoPreview(commandBuffer, _rtaoCore);
+                    bool recordedNormHitDistPreview = recordedRtao &&
+                                                      _rtaoDenoiseCore != null &&
+                                                      VoxelGbufferDebugView.PreviewTarget == VoxelGbufferPreviewTarget.NormHitDist &&
+                                                      _rtaoDenoiseCore.RecordNormHitDistancePreview(commandBuffer, _gbufferCore, _rtaoCore);
+                    commandBuffer.SetGlobalFloat(VoxelNrdIds.PreviewAvailableId, (boundDenoisedAoPreview || recordedNormHitDistPreview) ? 1.0f : 0.0f);
+
+                    if (recordedRtao && !boundDenoisedAoPreview && _rtaoCore.OutputTexture != null)
+                    {
+                        commandBuffer.SetGlobalTexture(VoxelRtaoIds.OutputTextureId, _rtaoCore.OutputTexture);
+                    }
+
                     RecordPreview(commandBuffer);
                     if (recordedRtao)
                     {
@@ -173,6 +203,14 @@ namespace VoxelEngine.Render.RenderPipeline
                     }
 
                     _gbufferCore.ReleaseTemporaryTargets(commandBuffer);
+
+                    if (needsDeferredDenoise)
+                    {
+                        denoiseCommandBuffer = new CommandBuffer
+                        {
+                            name = $"{nameof(VoxelEngineRenderPipeline)}.{nameof(RtaoDenoiseCore)}"
+                        };
+                    }
                 }
 
                 context.ExecuteCommandBuffer(commandBuffer);
@@ -184,9 +222,18 @@ namespace VoxelEngine.Render.RenderPipeline
                     context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
                 }
 #endif
+
+                if (denoiseCommandBuffer != null &&
+                    _rtaoDenoiseCore != null &&
+                    _rtaoDenoiseCore.QueueDeferredDenoise(denoiseCommandBuffer, camera, _gbufferCore, _rtaoCore))
+                {
+                    context.ExecuteCommandBuffer(denoiseCommandBuffer);
+                }
             }
             finally
             {
+                denoiseCommandBuffer?.Clear();
+                denoiseCommandBuffer?.Release();
                 commandBuffer.Clear();
                 commandBuffer.Release();
             }
@@ -258,7 +305,9 @@ namespace VoxelEngine.Render.RenderPipeline
                 VoxelGbufferPreviewTarget.Normal => VoxelGbufferIds.NormalTarget,
                 VoxelGbufferPreviewTarget.Depth => VoxelGbufferIds.DepthTarget,
                 VoxelGbufferPreviewTarget.Motion => VoxelGbufferIds.MotionTarget,
-                VoxelGbufferPreviewTarget.Rtao => VoxelRtaoIds.OutputTarget,
+                VoxelGbufferPreviewTarget.HitDist => VoxelRtaoIds.HitDistanceTarget,
+                VoxelGbufferPreviewTarget.NormHitDist => VoxelNrdIds.PackedDiffuseHitDistanceTarget,
+                VoxelGbufferPreviewTarget.DenoisedAo => VoxelRtaoIds.OutputTarget,
                 _ => VoxelGbufferIds.AlbedoTarget,
             };
         }
