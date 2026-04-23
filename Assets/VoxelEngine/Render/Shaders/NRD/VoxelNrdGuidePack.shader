@@ -45,7 +45,7 @@ Shader "Hidden/VoxelEngine/Rendering/NrdGuidePack"
                     float viewZ = tex2D(_VoxelEngineNrdSecondarySource, viewZUv).r;
                     float normalizedHitDistance = REBLUR_FrontEnd_GetNormHitDist(
                         hitDistance,
-                        max(viewZ, 1e-4),
+                        max(abs(viewZ), 1e-4),
                         _VoxelEngineNrdHitDistanceParameters.xyz,
                         1.0);
                     return normalizedHitDistance.xxxx;

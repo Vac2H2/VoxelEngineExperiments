@@ -59,8 +59,8 @@ float ComputeDepthValue(float hitT)
 
 float ComputeLinearViewZ(float3 positionWS, float3 cameraPositionWS, float3 cameraForwardWS)
 {
-    // NRD expects linear view-space Z for the primary surface, not NDC z and not hardware depth.
-    return max(dot(positionWS - cameraPositionWS, cameraForwardWS), 0.0);
+    // Match Unity worldToCameraMatrix convention: geometry in front of the camera is negative Z.
+    return -dot(positionWS - cameraPositionWS, cameraForwardWS);
 }
 
 float2 ComputeUvFromClip(float4 clipPosition)

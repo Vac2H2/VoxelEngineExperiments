@@ -380,10 +380,10 @@ namespace VoxelEngine.Render.NRD.Cores
                 Width = width,
                 Height = height,
                 FrameIndex = Time.frameCount,
-                CurrentWorldToView = currentHistory.WorldToView,
-                PreviousWorldToView = previousHistory.WorldToView,
-                CurrentViewToClip = currentHistory.ViewToClip,
-                PreviousViewToClip = previousHistory.ViewToClip
+                CurrentWorldToView = NrdMatrix4x4.FromUnityMatrix(currentHistory.WorldToView),
+                PreviousWorldToView = NrdMatrix4x4.FromUnityMatrix(previousHistory.WorldToView),
+                CurrentViewToClip = NrdMatrix4x4.FromUnityMatrix(currentHistory.ViewToClip),
+                PreviousViewToClip = NrdMatrix4x4.FromUnityMatrix(previousHistory.ViewToClip)
             };
 
             if (frameData.NoisyAmbientNormalizedHitDistance == IntPtr.Zero ||

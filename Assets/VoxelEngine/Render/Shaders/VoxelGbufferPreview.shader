@@ -15,10 +15,12 @@ Shader "Hidden/VoxelEngine/Rendering/GbufferPreview"
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+            #include "NRD/Vendor/NRD.hlsli"
 
             sampler2D _VoxelEngineGbufferAlbedo;
             sampler2D _VoxelEngineGbufferNormal;
             sampler2D_float _VoxelEngineGbufferDepth;
+            sampler2D_float _VoxelEngineGbufferViewZ;
             sampler2D_float _VoxelEngineGbufferMotion;
             sampler2D_float _VoxelEngineHitDist;
             sampler2D_float _VoxelEngineRtao;
@@ -29,6 +31,7 @@ Shader "Hidden/VoxelEngine/Rendering/GbufferPreview"
             float _VoxelEngineCameraFarClip;
             float _VoxelEngineRtaoHitDistanceMax;
             float _VoxelEngineNrdPreviewAvailable;
+            float4 _VoxelEngineNrdHitDistanceParameters;
 
             float VisualizeHitDistance(float hitDistance)
             {
@@ -94,6 +97,21 @@ Shader "Hidden/VoxelEngine/Rendering/GbufferPreview"
                         ? tex2D(_VoxelEngineNrdPackedDiffuseHitDistance, input.uv).r
                         : 0.0;
                     return float4(normHitDistance, normHitDistance, normHitDistance, 1.0);
+                }
+
+                if (_VoxelEngineGbufferPreviewMode < 6.5)
+                {
+                    float normHitDistance = _VoxelEngineNrdPreviewAvailable > 0.5
+                        ? tex2D(_VoxelEngineNrdPackedDiffuseHitDistance, input.uv).r
+                        : 0.0;
+                    float viewZ = tex2D(_VoxelEngineGbufferViewZ, input.uv).r;
+                    float decodedHitDistance = REBLUR_GetHitDist(
+                        normHitDistance,
+                        max(abs(viewZ), 1e-4),
+                        _VoxelEngineNrdHitDistanceParameters.xyz,
+                        1.0);
+                    float previewDecodedHitDistance = VisualizeHitDistance(decodedHitDistance);
+                    return float4(previewDecodedHitDistance, previewDecodedHitDistance, previewDecodedHitDistance, 1.0);
                 }
 
                 float denoisedAo = _VoxelEngineNrdPreviewAvailable > 0.5

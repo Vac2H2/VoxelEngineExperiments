@@ -159,7 +159,6 @@ namespace VoxelEngine.Render.RenderPipeline
             {
                 name = nameof(VoxelEngineRenderPipeline)
             };
-            CommandBuffer denoiseCommandBuffer = null;
 
             try
             {
@@ -178,20 +177,20 @@ namespace VoxelEngine.Render.RenderPipeline
                 {
                     bool recordedRtao = _rtaoCore != null && _rtaoCore.Record(commandBuffer, camera, _renderBackend, _gbufferCore);
                     bool wantsDenoisedAoPreview = VoxelGbufferDebugView.PreviewTarget == VoxelGbufferPreviewTarget.DenoisedAo;
-                    bool needsDeferredDenoise = recordedRtao &&
+                    bool allowsNativeDenoise = recordedRtao &&
                                                _rtaoDenoiseCore != null &&
-                                               (_enableRtaoDenoiseInSrp || wantsDenoisedAoPreview);
-                    bool boundDenoisedAoPreview = recordedRtao &&
-                                                  wantsDenoisedAoPreview &&
-                                                  _rtaoDenoiseCore != null &&
-                                                  _rtaoDenoiseCore.BindLatestDenoisedAoPreview(commandBuffer, _rtaoCore);
+                                               camera.cameraType == CameraType.Game;
+                    bool recordedDenoisedAo = allowsNativeDenoise &&
+                                              (_enableRtaoDenoiseInSrp || wantsDenoisedAoPreview) &&
+                                              _rtaoDenoiseCore.Record(commandBuffer, camera, _gbufferCore, _rtaoCore);
                     bool recordedNormHitDistPreview = recordedRtao &&
                                                       _rtaoDenoiseCore != null &&
-                                                      VoxelGbufferDebugView.PreviewTarget == VoxelGbufferPreviewTarget.NormHitDist &&
+                                                      (VoxelGbufferDebugView.PreviewTarget == VoxelGbufferPreviewTarget.NormHitDist ||
+                                                       VoxelGbufferDebugView.PreviewTarget == VoxelGbufferPreviewTarget.DecodedHitDist) &&
                                                       _rtaoDenoiseCore.RecordNormHitDistancePreview(commandBuffer, _gbufferCore, _rtaoCore);
-                    commandBuffer.SetGlobalFloat(VoxelNrdIds.PreviewAvailableId, (boundDenoisedAoPreview || recordedNormHitDistPreview) ? 1.0f : 0.0f);
+                    commandBuffer.SetGlobalFloat(VoxelNrdIds.PreviewAvailableId, (recordedDenoisedAo || recordedNormHitDistPreview) ? 1.0f : 0.0f);
 
-                    if (recordedRtao && !boundDenoisedAoPreview && _rtaoCore.OutputTexture != null)
+                    if (recordedRtao && !recordedDenoisedAo && _rtaoCore.OutputTexture != null)
                     {
                         commandBuffer.SetGlobalTexture(VoxelRtaoIds.OutputTextureId, _rtaoCore.OutputTexture);
                     }
@@ -203,14 +202,6 @@ namespace VoxelEngine.Render.RenderPipeline
                     }
 
                     _gbufferCore.ReleaseTemporaryTargets(commandBuffer);
-
-                    if (needsDeferredDenoise)
-                    {
-                        denoiseCommandBuffer = new CommandBuffer
-                        {
-                            name = $"{nameof(VoxelEngineRenderPipeline)}.{nameof(RtaoDenoiseCore)}"
-                        };
-                    }
                 }
 
                 context.ExecuteCommandBuffer(commandBuffer);
@@ -223,17 +214,9 @@ namespace VoxelEngine.Render.RenderPipeline
                 }
 #endif
 
-                if (denoiseCommandBuffer != null &&
-                    _rtaoDenoiseCore != null &&
-                    _rtaoDenoiseCore.QueueDeferredDenoise(denoiseCommandBuffer, camera, _gbufferCore, _rtaoCore))
-                {
-                    context.ExecuteCommandBuffer(denoiseCommandBuffer);
-                }
             }
             finally
             {
-                denoiseCommandBuffer?.Clear();
-                denoiseCommandBuffer?.Release();
                 commandBuffer.Clear();
                 commandBuffer.Release();
             }

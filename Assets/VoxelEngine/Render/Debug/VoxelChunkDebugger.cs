@@ -25,7 +25,8 @@ namespace VoxelEngine.Render.Debugging
         Motion = 3,
         HitDist = 4,
         NormHitDist = 5,
-        DenoisedAo = 6,
+        DecodedHitDist = 6,
+        DenoisedAo = 7,
     }
 
     public static class VoxelGbufferDebugView
@@ -135,6 +136,7 @@ namespace VoxelEngine.Render.Debugging
             GUILayout.Space(4.0f);
             GUILayout.BeginHorizontal();
             DrawPreviewButton("NormHitDist", VoxelGbufferPreviewTarget.NormHitDist);
+            DrawPreviewButton("DecodedHitDist", VoxelGbufferPreviewTarget.DecodedHitDist);
             DrawPreviewButton("DenoisedAO", VoxelGbufferPreviewTarget.DenoisedAo);
             GUILayout.EndHorizontal();
 
