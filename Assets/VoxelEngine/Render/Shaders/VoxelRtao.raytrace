@@ -3,7 +3,7 @@
 
 #define VOXEL_ENGINE_INCLUDE_HIT_SHADERS 0
 #include "VoxelProceduralShaderShared.hlsl"
-#include "NRD/Vendor/NRD.hlsli"
+#include "VoxelGbufferEncoding.hlsl"
 
 RaytracingAccelerationStructure _RaytracingAccelerationStructure;
 
@@ -12,11 +12,13 @@ Texture2D<float> _VoxelEngineGbufferDepth;
 Texture2D<float2> _VoxelEngineRtaoStbnSlice;
 
 float4x4 _PixelCoordToViewDirWS;
+float2 _VoxelEngineProjectionJitter;
 float3 _CameraPositionWS;
 float _RayTMax;
 uint _OpaqueInstanceMask;
 uint _RtaoPixelStep;
 uint _RtaoAmbientRaysPerPixel;
+uint _VoxelEngineRtaoStbnTileTransform;
 float _RtaoAmbientMaxDistance;
 float _RtaoAmbientNormalBias;
 
@@ -28,7 +30,7 @@ static const uint kMaxSupportedRaysPerPixel = 8u;
 
 float3 ComputePrimaryViewDirectionWS(uint2 pixel)
 {
-    return -normalize(mul(float4((float2)pixel + 0.5, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
+    return -normalize(mul(float4((float2)pixel + 0.5 + _VoxelEngineProjectionJitter, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
 }
 
 float ReconstructPrimaryRayHitT(float depthValue)
@@ -89,6 +91,21 @@ uint ResolveRaysPerPixel()
     return clamp(_RtaoAmbientRaysPerPixel, 1u, kMaxSupportedRaysPerPixel);
 }
 
+uint HashUint(uint value)
+{
+    value ^= value >> 16u;
+    value *= 0x7feb352du;
+    value ^= value >> 15u;
+    value *= 0x846ca68bu;
+    value ^= value >> 16u;
+    return value;
+}
+
+uint HashTile(uint2 tile)
+{
+    return HashUint(tile.x ^ (tile.y * 0x9e3779b9u));
+}
+
 bool TryLoadSurface(uint2 aoPixel, out uint2 fullResPixel, out float3 positionWS, out float3 normalWS)
 {
     fullResPixel = 0u;
@@ -117,7 +134,7 @@ bool TryLoadSurface(uint2 aoPixel, out uint2 fullResPixel, out float3 positionWS
     float3 viewDirectionWS = ComputePrimaryViewDirectionWS(fullResPixel);
     float hitT = ReconstructPrimaryRayHitT(depthValue);
     positionWS = _CameraPositionWS + (viewDirectionWS * hitT);
-    normalWS = NRD_FrontEnd_UnpackNormalAndRoughness(packedNormalRoughness).xyz;
+    normalWS = VoxelUnpackNormalAndRoughness(packedNormalRoughness).xyz;
     return true;
 }
 
@@ -133,6 +150,35 @@ float2 LoadStbnSample(uint2 fullResPixel, uint sampleIndex)
 
     uint2 rayOffset = uint2(sampleIndex * 47u, sampleIndex * 173u);
     uint2 stbnPixel = uint2((fullResPixel.x + rayOffset.x) % stbnWidth, (fullResPixel.y + rayOffset.y) % stbnHeight);
+
+    if (_VoxelEngineRtaoStbnTileTransform != 0u)
+    {
+        uint2 tile = uint2(fullResPixel.x / stbnWidth, fullResPixel.y / stbnHeight);
+        uint tileHash = HashTile(tile);
+
+        if ((tileHash & 1u) != 0u)
+        {
+            stbnPixel.x = (stbnWidth - 1u) - stbnPixel.x;
+        }
+
+        if ((tileHash & 2u) != 0u)
+        {
+            stbnPixel.y = (stbnHeight - 1u) - stbnPixel.y;
+        }
+
+        if ((tileHash & 4u) != 0u)
+        {
+            stbnPixel = uint2(stbnPixel.y % stbnWidth, stbnPixel.x % stbnHeight);
+        }
+
+        uint2 tileOffset = uint2(
+            (tileHash >> 8u) % stbnWidth,
+            (tileHash >> 20u) % stbnHeight);
+        stbnPixel = uint2(
+            (stbnPixel.x + tileOffset.x) % stbnWidth,
+            (stbnPixel.y + tileOffset.y) % stbnHeight);
+    }
+
     return saturate(_VoxelEngineRtaoStbnSlice.Load(int3(stbnPixel, 0)));
 }
 

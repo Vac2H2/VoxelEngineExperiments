@@ -14,7 +14,6 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
 
         [SerializeField] private VoxelModel _targetModel;
         [SerializeField] private float _radius = 4.0f;
-        [SerializeField] private float _voxelSize = 0.25f;
         [SerializeField] private int _solidVoxelValue = 1;
 
         [MenuItem("VoxelExperiments/Tools/Sphere To Voxel Model")]
@@ -30,7 +29,8 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
         {
             EditorGUILayout.LabelField("Sphere", EditorStyles.boldLabel);
             _radius = EditorGUILayout.FloatField("Radius", _radius);
-            _voxelSize = EditorGUILayout.FloatField("Voxel Size", _voxelSize);
+            float voxelSize = VoxelGlobalSize.Value;
+            EditorGUILayout.LabelField("Global Voxel Size", voxelSize.ToString("0.######"));
             _solidVoxelValue = EditorGUILayout.IntSlider("Solid Voxel Value", _solidVoxelValue, 1, 255);
             _targetModel = (VoxelModel)EditorGUILayout.ObjectField("Target Model", _targetModel, typeof(VoxelModel), false);
             using (new EditorGUI.DisabledScope(true))
@@ -40,13 +40,13 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
 
             EditorGUILayout.Space();
 
-            if (_radius > 0.0f && _voxelSize > 0.0f)
+            if (_radius > 0.0f && voxelSize > 0.0f)
             {
-                DrawSphereSummary(_radius, _voxelSize);
+                DrawSphereSummary(_radius, voxelSize);
             }
             else
             {
-                EditorGUILayout.HelpBox("Enter a positive radius and voxel size.", MessageType.Info);
+                EditorGUILayout.HelpBox("Enter a positive radius and set a positive global voxel size.", MessageType.Info);
             }
 
             EditorGUILayout.Space();
@@ -54,7 +54,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
                 "The generated sphere uses the model minimum corner as the local origin. Chunk (0,0,0) starts at (0,0,0), and the sphere center is placed at (radius, radius, radius).",
                 MessageType.None);
 
-            using (new EditorGUI.DisabledScope(_radius <= 0.0f || _voxelSize <= 0.0f))
+            using (new EditorGUI.DisabledScope(_radius <= 0.0f || voxelSize <= 0.0f))
             {
                 if (GUILayout.Button(_targetModel == null ? "Create VoxelModel" : "Overwrite Target Model", GUILayout.Height(32.0f)))
                 {
@@ -94,7 +94,6 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             {
                 MeshVoxelizationResult result = GenerateSphereResult(
                     _radius,
-                    _voxelSize,
                     checked((byte)_solidVoxelValue),
                     ResolveRequestedMemoryLayout());
                 VoxelModel asset = VoxelModelAssetWriter.WriteAsset(_targetModel, assetPath, result);
@@ -118,18 +117,12 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
 
         private static MeshVoxelizationResult GenerateSphereResult(
             float radius,
-            float voxelSize,
             byte solidVoxelValue,
             VoxelMemoryLayout memoryLayout)
         {
             if (radius <= 0.0f)
             {
                 throw new ArgumentOutOfRangeException(nameof(radius), "Radius must be greater than zero.");
-            }
-
-            if (voxelSize <= 0.0f)
-            {
-                throw new ArgumentOutOfRangeException(nameof(voxelSize), "Voxel size must be greater than zero.");
             }
 
             if (solidVoxelValue == 0)
@@ -143,6 +136,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             }
 
             float radiusSquared = radius * radius;
+            float voxelSize = VoxelGlobalSize.Value;
             Vector3 voxelExtent = Vector3.one * voxelSize;
             Vector3Int gridDimensions = CalculateGridDimensions(radius, voxelSize);
             Vector3 gridOrigin = CalculateGridOrigin(gridDimensions, voxelSize);
@@ -318,14 +312,14 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             private readonly byte[] _voxelBytes = new byte[VoxelChunkLayout.VoxelDataByteCount];
             private readonly Vector3Int _chunkCoordinate;
             private readonly Vector3 _chunkOrigin;
-            private readonly float _voxelSize;
+            private readonly float _globalVoxelSize;
             private readonly VoxelMemoryLayout _memoryLayout;
 
-            public ChunkBuilder(Vector3Int chunkCoordinate, Vector3 chunkOrigin, float voxelSize, VoxelMemoryLayout memoryLayout)
+            public ChunkBuilder(Vector3Int chunkCoordinate, Vector3 chunkOrigin, float globalVoxelSize, VoxelMemoryLayout memoryLayout)
             {
                 _chunkCoordinate = chunkCoordinate;
                 _chunkOrigin = chunkOrigin;
-                _voxelSize = voxelSize;
+                _globalVoxelSize = globalVoxelSize;
                 _memoryLayout = memoryLayout;
             }
 
@@ -361,7 +355,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
                     throw new InvalidOperationException("Cannot build an AABB for an empty chunk.");
                 }
 
-                Vector3 max = _chunkOrigin + (Vector3.one * (VoxelChunkLayout.Dimension * _voxelSize));
+                Vector3 max = _chunkOrigin + (Vector3.one * (VoxelChunkLayout.Dimension * _globalVoxelSize));
                 return new ModelChunkAabb(_chunkOrigin, max);
             }
         }

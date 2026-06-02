@@ -13,6 +13,11 @@ MonoBehaviour:
   m_Name: VoxelEngineRenderPipelineAsset
   m_EditorClassIdentifier: Assembly-CSharp::VoxelEngine.Render.RenderPipeline.VoxelEngineRenderPipelineAsset
   _rayTracingMaterial: {fileID: 2100000, guid: f60f619b6b2866c4ba1e8aed82106e49, type: 2}
+  _gbufferPreviewShader: {fileID: 4800000, guid: c2b977a3c6e00cb4d9a0e6b423cb29bd, type: 3}
+  _skyTexture: {fileID: 2800000, guid: fab454e952586534d945f6b20be16c5e, type: 3}
+  _skyExposure: 1
+  _skyRotation: 0
+  _globalVoxelSize: 1
   _gbufferCore:
     _rayTracingShader: {fileID: 4807578003741378534, guid: c4b8e36aac50494ebccfae06b6369118, type: 3}
     _shaderPassName: 
@@ -21,15 +26,23 @@ MonoBehaviour:
     _depthFormat: 0
     _viewZFormat: 0
     _motionFormat: 0
+    _globalRoughness: 0.8
+    _puddlesEnabled: 0
+    _puddleCoverage: 0.35
+    _puddleScale: 0.055
+    _puddleRoughness: 0.06
+    _puddleDarkening: 0.35
+    _puddleMinNormalY: 0.78
   _rtaoCore:
     _rayTracingShader: {fileID: 4807578003741378534, guid: 6fdeee360a4f4930bb40adf01ae469d0, type: 3}
     _shaderPassName: VoxelProceduralDXR
     _resolutionMode: 1
+    _noiseMode: 1
     _outputFormat: 0
     _ambient:
-      _maxDistance: 12
-      _normalBias: 0.05
-      _raysPerPixel: 1
+      _maxDistance: 256
+      _normalBias: 0.001
+      _raysPerPixel: 8
     _stbnSlices:
     - {fileID: 2800000, guid: b16294a44d67e8f40907689e4359cc8a, type: 3}
     - {fileID: 2800000, guid: c69e688a8ea534d4e8af4cfb8f4c5670, type: 3}
@@ -95,16 +108,46 @@ MonoBehaviour:
     - {fileID: 2800000, guid: c7411e31173501541b40ac2b2db64392, type: 3}
     - {fileID: 2800000, guid: 386dc979e837609448b201666251dce4, type: 3}
     - {fileID: 2800000, guid: 0eb8445a2f76fc94a83b59d2dfdbb897, type: 3}
-  _enableRtaoDenoiseInSrp: 0
-  _rtaoDenoiseCore:
-    _enabled: 1
-    _strictNativeBackend: 0
-    _guideNormalRoughnessFormat: 0
-    _guideViewZFormat: 0
-    _guideMotionFormat: 0
-    _packedDiffuseHitDistanceFormat: 0
-    _denoisedAoFormat: 0
+  _sunLightCore:
+    _rayTracingShader: {fileID: 4807578003741378534, guid: e8e5679ce57c4fd58edcd47b8ec4d3b1, type: 3}
+    _shaderPassName: VoxelProceduralDXR
+    _fallbackSunDirection: {x: 0.4, y: 1, z: 0.2}
+    _fallbackSunColor: {r: 1, g: 1, b: 1, a: 1}
+    _sunLightColor: {r: 1, g: 0.86, b: 0.62, a: 1}
+    _visibleSunEnabled: 1
+    _visibleSunIntensity: 18
+    _visibleSunAngularRadius: 0.53
+    _visibleSunHaloSize: 8
+    _visibleSunHaloIntensity: 1.25
+    _shadowDistance: 0
+    _normalBias: 0.001
     _outputFormat: 0
-    _maxAccumulatedFrameNum: 30
-    _maxFastAccumulatedFrameNum: 6
-    _historyFixFrameNum: 3
+  _reflectionCore:
+    _enabled: 0
+    _rayTracingShader: {fileID: 4807578003741378534, guid: 42f9b1d27e904f2db5fd8c6939a75b62, type: 3}
+    _shaderPassName: VoxelProceduralDXR
+    _maxDistance: 128
+    _normalBias: 0.01
+    _spatialDenoiseEnabled: 1
+    _spatialNormalPower: 64
+    _spatialDepthScale: 8
+    _outputFormat: 0
+    _spatialDenoiseShader: {fileID: 4800000, guid: 577d7703cce74f0897ce385d9a29e382, type: 3}
+  _rtaoFrameAverageCore:
+    _spatialEnabled: 1
+    _spatialNormalPower: 64
+    _spatialDepthScale: 8
+    _spatialRadius: 8
+    _spatialSampleCount: 16
+    _ambientVisibility: 1
+    _aoStepSize: 0
+    _aoMinVisibility: 0
+    _ambientLightColor: {r: 0.56, g: 0.64, b: 0.78, a: 1}
+    _shader: {fileID: 4800000, guid: 6c4a417d77e64232a64ec2adbf79a467, type: 3}
+  _taaCore:
+    _enabled: 1
+    _jitterSpread: 0.25
+    _historyWeight: 0.85
+    _depthRelativeThreshold: 0.08
+    _normalThreshold: 0.82
+    _shader: {fileID: 4800000, guid: 9cce80595d7d4d05afac19d2f7db2f56, type: 3}

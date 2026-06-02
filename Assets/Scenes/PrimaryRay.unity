@@ -224,7 +224,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6d4c0c9a9cb4f93b9d6c8d0f66a4c21, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VoxelEngine.Debugging.CameraPlanarMovementController
-  _moveSpeed: 10
+  _moveSpeed: 200
   _lookSensitivity: 0.15
   _minPitch: -89
   _maxPitch: 89
@@ -246,7 +246,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &219189971
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -296,7 +296,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &444319190
 MonoBehaviour:
   m_ObjectHideFlags: 0

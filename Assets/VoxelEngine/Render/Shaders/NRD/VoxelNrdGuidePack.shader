@@ -17,14 +17,16 @@ Shader "Hidden/VoxelEngine/Rendering/NrdGuidePack"
             #include "UnityCG.cginc"
             #include "Vendor/NRD.hlsli"
 
-            sampler2D _MainTex;
+            sampler2D_float _MainTex;
             float4 _MainTex_TexelSize;
-            sampler2D _VoxelEngineNrdSecondarySource;
+            sampler2D_float _VoxelEngineNrdHitDistanceSource;
+            sampler2D_float _VoxelEngineNrdSecondarySource;
             float4 _VoxelEngineNrdSecondarySourceTexelSize;
             float _VoxelEngineNrdPixelStep;
             float _VoxelEngineNrdSecondaryPixelStep;
             float _VoxelEngineNrdGuideMode;
             float4 _VoxelEngineNrdHitDistanceParameters;
+            float _VoxelEngineNrdUseRawHitDistanceInput;
 
             float2 ComputeSourceUv(float2 outputUv, float4 texelSize, float pixelStep)
             {
@@ -39,9 +41,13 @@ Shader "Hidden/VoxelEngine/Rendering/NrdGuidePack"
             {
                 if (_VoxelEngineNrdGuideMode > 0.5)
                 {
-                    float2 hitDistUv = ComputeSourceUv(input.uv, _MainTex_TexelSize, _VoxelEngineNrdPixelStep);
                     float2 viewZUv = ComputeSourceUv(input.uv, _VoxelEngineNrdSecondarySourceTexelSize, _VoxelEngineNrdSecondaryPixelStep);
-                    float hitDistance = tex2D(_MainTex, hitDistUv).r;
+                    float hitDistance = tex2D(_VoxelEngineNrdHitDistanceSource, input.uv).r;
+                    if (_VoxelEngineNrdUseRawHitDistanceInput > 0.5)
+                    {
+                        return hitDistance.xxxx;
+                    }
+
                     float viewZ = tex2D(_VoxelEngineNrdSecondarySource, viewZUv).r;
                     float normalizedHitDistance = REBLUR_FrontEnd_GetNormHitDist(
                         hitDistance,

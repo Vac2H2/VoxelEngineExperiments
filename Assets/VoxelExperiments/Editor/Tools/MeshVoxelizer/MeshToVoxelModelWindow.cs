@@ -11,7 +11,6 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
         [SerializeField] private Mesh _sourceMesh;
         [SerializeField] private VoxelModel _targetModel;
         [SerializeField] private string _targetModelPath;
-        [SerializeField] private float _voxelSize = 0.1f;
         [SerializeField] private int _solidVoxelValue = 1;
         [SerializeField] private VoxelMemoryLayout _newModelMemoryLayout = VoxelMemoryLayout.Linear;
 
@@ -54,18 +53,19 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
                     MessageType.Info);
             }
 
-            _voxelSize = EditorGUILayout.FloatField("Voxel Size", _voxelSize);
+            float voxelSize = VoxelGlobalSize.Value;
+            EditorGUILayout.LabelField("Global Voxel Size", voxelSize.ToString("0.######"));
             _solidVoxelValue = EditorGUILayout.IntSlider("Solid Voxel Value", _solidVoxelValue, 1, 255);
 
             EditorGUILayout.Space();
 
-            if (_sourceMesh != null && _voxelSize > 0f)
+            if (_sourceMesh != null && voxelSize > 0f)
             {
-                DrawMeshSummary(_sourceMesh, _voxelSize);
+                DrawMeshSummary(_sourceMesh, voxelSize);
             }
             else
             {
-                EditorGUILayout.HelpBox("Assign a source mesh and a positive voxel size.", MessageType.Info);
+                EditorGUILayout.HelpBox("Assign a source mesh and set a positive global voxel size.", MessageType.Info);
             }
 
             EditorGUILayout.Space();
@@ -76,7 +76,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
                 "VoxelModel local space is rebased to the mesh bounds minimum corner, so chunk (0,0,0) starts at (0,0,0).",
                 MessageType.None);
 
-            using (new EditorGUI.DisabledScope(_sourceMesh == null || _voxelSize <= 0f))
+            using (new EditorGUI.DisabledScope(_sourceMesh == null || voxelSize <= 0f))
             {
                 if (GUILayout.Button(_targetModel == null ? "Create VoxelModel" : "Overwrite Target Model", GUILayout.Height(32f)))
                 {
@@ -124,7 +124,6 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
             {
                 MeshVoxelizerGpu.AppendTraceLine($"Create settings begin | t={stopwatch.ElapsedMilliseconds} ms");
                 MeshVoxelizationSettings settings = new MeshVoxelizationSettings(
-                    _voxelSize,
                     checked((byte)_solidVoxelValue),
                     ResolveRequestedMemoryLayout());
                 MeshVoxelizerGpu.AppendTraceLine($"Create settings end | t={stopwatch.ElapsedMilliseconds} ms");

@@ -1,0 +1,236 @@
+#pragma max_recursion_depth 1
+#pragma only_renderers d3d11
+
+#define VOXEL_ENGINE_INCLUDE_HIT_SHADERS 0
+#include "VoxelProceduralShaderShared.hlsl"
+#include "VoxelGbufferEncoding.hlsl"
+
+RaytracingAccelerationStructure _RaytracingAccelerationStructure;
+
+Texture2D<float4> _VoxelEngineGbufferNormal;
+Texture2D<float> _VoxelEngineGbufferDepth;
+Texture2D<float4> _VoxelEngineSkyTexture;
+
+float4x4 _PixelCoordToViewDirWS;
+float2 _VoxelEngineProjectionJitter;
+float3 _CameraPositionWS;
+uint _OpaqueInstanceMask;
+float4 _BackgroundColor;
+float _VoxelEngineReflectionMaxDistance;
+float _VoxelEngineReflectionNormalBias;
+float _VoxelEngineSkyEnabled;
+float _VoxelEngineSkyExposure;
+float _VoxelEngineSkyRotation;
+
+RWTexture2D<float4> _VoxelEngineRawReflectionColor;
+
+static const float kReflectionRayTMin = 1e-4;
+static const float kPi = 3.14159265359;
+static const float kTwoPi = 6.28318530718;
+static const float kDefaultDielectricF0 = 0.04;
+
+float3 SrgbToLinear(float3 srgb)
+{
+    float3 low = srgb / 12.92;
+    float3 high = pow(max((srgb + 0.055) / 1.055, 0.0), 2.4);
+    return lerp(high, low, step(srgb, 0.04045));
+}
+
+float3 DecodeAlbedo(uint packedAlbedo)
+{
+    float3 srgb = float3(
+        (packedAlbedo & 0xFFu) / 255.0,
+        ((packedAlbedo >> 8u) & 0xFFu) / 255.0,
+        ((packedAlbedo >> 16u) & 0xFFu) / 255.0);
+    return SrgbToLinear(srgb);
+}
+
+float3 ComputePrimaryViewDirectionWS(uint2 pixel)
+{
+    return -normalize(mul(float4((float2)pixel + 0.5 + _VoxelEngineProjectionJitter, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
+}
+
+uint ResolveOpaqueInstanceMask()
+{
+    return _OpaqueInstanceMask == 0u ? 0x1u : _OpaqueInstanceMask;
+}
+
+float ResolveReflectionMaxDistance()
+{
+    return max(_VoxelEngineReflectionMaxDistance, kReflectionRayTMin);
+}
+
+float ResolveReflectionNormalBias()
+{
+    return _VoxelEngineReflectionNormalBias <= 0.0 ? 0.01 : _VoxelEngineReflectionNormalBias;
+}
+
+bool TryLoadSurface(uint2 pixel, out float3 positionWS, out float3 normalWS, out float roughness, out float3 viewDirectionWS)
+{
+    positionWS = 0.0;
+    normalWS = 0.0;
+    roughness = 1.0;
+    viewDirectionWS = ComputePrimaryViewDirectionWS(pixel);
+
+    float4 packedNormalRoughness = _VoxelEngineGbufferNormal.Load(int3(pixel, 0));
+    if (dot(packedNormalRoughness.xyz, packedNormalRoughness.xyz) <= 1e-6)
+    {
+        return false;
+    }
+
+    float depthValue = max(_VoxelEngineGbufferDepth.Load(int3(pixel, 0)), 0.0);
+    positionWS = _CameraPositionWS + (viewDirectionWS * depthValue);
+    float4 normalRoughness = VoxelUnpackNormalAndRoughness(packedNormalRoughness);
+    normalWS = normalRoughness.xyz;
+    roughness = saturate(normalRoughness.w);
+    return true;
+}
+
+uint HashUint(uint value)
+{
+    value ^= value >> 16;
+    value *= 0x7feb352du;
+    value ^= value >> 15;
+    value *= 0x846ca68bu;
+    value ^= value >> 16;
+    return value;
+}
+
+float2 Hash2(uint2 pixel)
+{
+    uint hash = HashUint((pixel.x * 0x9e3779b9u) ^ (pixel.y * 0x85ebca6bu));
+    return float2(
+        (hash & 0xffffu) / 65535.0,
+        ((hash >> 16u) & 0xffffu) / 65535.0);
+}
+
+float3 BuildJitteredReflectionDirection(float3 reflectionDirectionWS, float roughness, uint2 pixel)
+{
+    float3 direction = normalize(reflectionDirectionWS);
+    float3 axis = abs(direction.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
+    float3 tangent = normalize(cross(axis, direction));
+    float3 bitangent = cross(direction, tangent);
+
+    float2 randomValue = Hash2(pixel);
+    float radius = sqrt(randomValue.x);
+    float angle = randomValue.y * (2.0 * kPi);
+    float2 disk = float2(cos(angle), sin(angle)) * radius;
+    float spread = roughness * roughness;
+    return normalize(direction + ((tangent * disk.x + bitangent * disk.y) * spread));
+}
+
+float3 KeepDirectionAboveSurface(float3 directionWS, float3 normalWS)
+{
+    float ndotd = dot(normalWS, directionWS);
+    if (ndotd > 1e-4)
+    {
+        return directionWS;
+    }
+
+    return normalize(directionWS + (normalWS * (1e-4 - ndotd)));
+}
+
+float ComputeReflectionWeight(float3 normalWS, float3 surfaceToCameraWS, float roughness)
+{
+    float ndotv = saturate(dot(normalize(normalWS), normalize(surfaceToCameraWS)));
+    float fresnel = kDefaultDielectricF0 + ((1.0 - kDefaultDielectricF0) * pow(1.0 - ndotv, 5.0));
+    float smoothness = saturate(1.0 - roughness);
+    return fresnel * smoothness;
+}
+
+float2 DirectionToEquirectUv(float3 directionWS)
+{
+    float3 direction = normalize(directionWS);
+    float u = atan2(direction.z, direction.x) / kTwoPi;
+    float v = 1.0 - (acos(clamp(direction.y, -1.0, 1.0)) / kPi);
+    return float2(frac(u + (_VoxelEngineSkyRotation / kTwoPi) + 0.5), saturate(v));
+}
+
+float3 SampleSky(float3 directionWS)
+{
+    if (_VoxelEngineSkyEnabled < 0.5)
+    {
+        return max(_BackgroundColor.rgb, float3(0.0, 0.0, 0.0));
+    }
+
+    float2 uv = DirectionToEquirectUv(directionWS);
+    uint width;
+    uint height;
+    _VoxelEngineSkyTexture.GetDimensions(width, height);
+    uint2 texel = uint2(
+        min((uint)(uv.x * max(width, 1u)), max(width, 1u) - 1u),
+        min((uint)(uv.y * max(height, 1u)), max(height, 1u) - 1u));
+    return max(_VoxelEngineSkyTexture.Load(int3(texel, 0)).rgb, 0.0) *
+        max(_VoxelEngineSkyExposure, 0.0);
+}
+
+RayPayload TraceSceneRay(RayDesc ray, uint instanceMask)
+{
+    RayPayload payload;
+    payload.hitT = 0.0;
+    payload.worldNormal = 0.0;
+    payload.packedAlbedo = 0u;
+    payload.flags = 0u;
+
+    TraceRay(
+        _RaytracingAccelerationStructure,
+        RAY_FLAG_NONE,
+        instanceMask,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    return payload;
+}
+
+[shader("raygeneration")]
+void RayGenMain()
+{
+    uint2 pixel = DispatchRaysIndex().xy;
+
+    float3 positionWS;
+    float3 normalWS;
+    float roughness;
+    float3 viewDirectionWS;
+    if (!TryLoadSurface(pixel, positionWS, normalWS, roughness, viewDirectionWS))
+    {
+        _VoxelEngineRawReflectionColor[pixel] = 0.0;
+        return;
+    }
+
+    float3 surfaceToCameraWS = -viewDirectionWS;
+    float reflectionWeight = ComputeReflectionWeight(normalWS, surfaceToCameraWS, roughness);
+    if (reflectionWeight <= 1e-5)
+    {
+        _VoxelEngineRawReflectionColor[pixel] = 0.0;
+        return;
+    }
+
+    float3 reflectionDirectionWS = reflect(viewDirectionWS, normalWS);
+    reflectionDirectionWS = BuildJitteredReflectionDirection(reflectionDirectionWS, roughness, pixel);
+    reflectionDirectionWS = KeepDirectionAboveSurface(reflectionDirectionWS, normalWS);
+
+    RayDesc ray;
+    ray.Origin = positionWS + (normalWS * ResolveReflectionNormalBias());
+    ray.Direction = reflectionDirectionWS;
+    ray.TMin = kReflectionRayTMin;
+    ray.TMax = ResolveReflectionMaxDistance();
+
+    RayPayload payload = TraceSceneRay(ray, ResolveOpaqueInstanceMask());
+    float3 reflectionColor = HasHit(payload)
+        ? DecodeAlbedo(payload.packedAlbedo)
+        : SampleSky(ray.Direction);
+
+    _VoxelEngineRawReflectionColor[pixel] = float4(reflectionColor * reflectionWeight, 1.0);
+}
+
+[shader("miss")]
+void MissMain(inout RayPayload payload : SV_RayPayload)
+{
+    payload.hitT = 0.0;
+    payload.worldNormal = 0.0;
+    payload.packedAlbedo = 0u;
+    payload.flags = 0u;
+}

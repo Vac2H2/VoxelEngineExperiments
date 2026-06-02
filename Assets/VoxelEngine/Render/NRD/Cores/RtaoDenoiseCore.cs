@@ -24,14 +24,28 @@ namespace VoxelEngine.Render.NRD.Cores
     public sealed class RtaoDenoiseCore
     {
         private const string GuidePackShaderName = "Hidden/VoxelEngine/Rendering/NrdGuidePack";
-        private static readonly Vector3 DefaultReblurHitDistanceParameters = new Vector3(3.0f, 0.1f, 20.0f);
+        private const float DefaultHitDistanceA = 3.0f;
+        private const float DefaultHitDistanceB = 0.1f;
+        private const float DefaultHitDistanceC = 20.0f;
+        private const float DefaultDiffusePrepassBlurRadius = 0.0f;
+        private const float DefaultMinBlurRadius = 0.0f;
+        private const float DefaultMaxBlurRadius = 4.0f;
+        private const float DefaultPlaneDistanceSensitivity = 0.005f;
+        private const float DefaultFastHistoryClampingSigmaScale = 1.1f;
+        private const float DefaultMinHitDistanceWeight = 0.05f;
+        private const int DefaultMaxStabilizedFrameNum = 0;
+        private const bool DefaultUseRawHitDistanceInput = true;
 
         private static readonly int NrdPixelStepId = Shader.PropertyToID("_VoxelEngineNrdPixelStep");
         private static readonly int NrdSecondaryPixelStepId = Shader.PropertyToID("_VoxelEngineNrdSecondaryPixelStep");
         private static readonly int NrdGuideModeId = Shader.PropertyToID("_VoxelEngineNrdGuideMode");
         private static readonly int NrdSecondarySourceId = Shader.PropertyToID("_VoxelEngineNrdSecondarySource");
+        private static readonly int NrdHitDistanceSourceId = Shader.PropertyToID("_VoxelEngineNrdHitDistanceSource");
         private static readonly int NrdSecondarySourceTexelSizeId = Shader.PropertyToID("_VoxelEngineNrdSecondarySourceTexelSize");
         private static readonly int NrdHitDistanceParametersId = Shader.PropertyToID("_VoxelEngineNrdHitDistanceParameters");
+        private static readonly int NrdUseRawHitDistanceInputId = Shader.PropertyToID("_VoxelEngineNrdUseRawHitDistanceInput");
+        private const float GuideModePassthrough = 0.0f;
+        private const float GuideModeNormHitDistance = 1.0f;
 
         [Serializable]
         private readonly struct CameraHistory
@@ -79,6 +93,17 @@ namespace VoxelEngine.Render.NRD.Cores
         [SerializeField] private GraphicsFormat _packedDiffuseHitDistanceFormat = GraphicsFormat.None;
         [SerializeField] private GraphicsFormat _denoisedAoFormat = GraphicsFormat.None;
         [SerializeField] private GraphicsFormat _outputFormat = GraphicsFormat.None;
+        [SerializeField, Min(0.0f)] private float _hitDistanceA = DefaultHitDistanceA;
+        [SerializeField, Min(0.0f)] private float _hitDistanceB = DefaultHitDistanceB;
+        [SerializeField, Min(0.0f)] private float _hitDistanceC = DefaultHitDistanceC;
+        [SerializeField, Min(0.0f)] private float _diffusePrepassBlurRadius = DefaultDiffusePrepassBlurRadius;
+        [SerializeField, Min(0.0f)] private float _minBlurRadius = DefaultMinBlurRadius;
+        [SerializeField, Min(0.0f)] private float _maxBlurRadius = DefaultMaxBlurRadius;
+        [SerializeField, Min(0.001f)] private float _planeDistanceSensitivity = DefaultPlaneDistanceSensitivity;
+        [SerializeField, Range(1.0f, 3.0f)] private float _fastHistoryClampingSigmaScale = DefaultFastHistoryClampingSigmaScale;
+        [SerializeField, Range(0.0f, 0.2f)] private float _minHitDistanceWeight = DefaultMinHitDistanceWeight;
+        [SerializeField, Min(0)] private int _maxStabilizedFrameNum = DefaultMaxStabilizedFrameNum;
+        [SerializeField] private bool _useRawHitDistanceInput = DefaultUseRawHitDistanceInput;
         [SerializeField, Min(1)] private int _maxAccumulatedFrameNum = 30;
         [SerializeField, Min(1)] private int _maxFastAccumulatedFrameNum = 6;
         [SerializeField, Min(1)] private int _historyFixFrameNum = 3;
@@ -88,6 +113,32 @@ namespace VoxelEngine.Render.NRD.Cores
         public RenderTexture DenoisedAoTexture => _denoisedAoTexture;
         public bool NativeBackendActive => _nativeBackendActive;
         public bool StrictNativeBackend => _strictNativeBackend;
+        public float HitDistanceA
+        {
+            get => Mathf.Max(_hitDistanceA, 0.0f);
+            set => _hitDistanceA = Mathf.Max(value, 0.0f);
+        }
+
+        public float HitDistanceB
+        {
+            get => Mathf.Max(_hitDistanceB, 0.0f);
+            set => _hitDistanceB = Mathf.Max(value, 0.0f);
+        }
+
+        public float HitDistanceC
+        {
+            get => Mathf.Max(_hitDistanceC, 0.0f);
+            set => _hitDistanceC = Mathf.Max(value, 0.0f);
+        }
+
+        public Vector3 HitDistanceParameters => ResolveHitDistanceParameters();
+
+        public void ResetHitDistanceParameters()
+        {
+            _hitDistanceA = DefaultHitDistanceA;
+            _hitDistanceB = DefaultHitDistanceB;
+            _hitDistanceC = DefaultHitDistanceC;
+        }
 
         public bool RecordNormHitDistancePreview(
             CommandBuffer commandBuffer,
@@ -313,11 +364,11 @@ namespace VoxelEngine.Render.NRD.Cores
         private void RecordGuidePacking(CommandBuffer commandBuffer, GbufferCore gbufferCore, RtaoCore rtaoCore)
         {
             float pixelStep = rtaoCore.ResolutionMode == RtaoResolutionMode.Half ? 2.0f : 1.0f;
-            Vector3 hitDistanceParameters = ResolveDefaultHitDistanceParameters();
+            Vector3 hitDistanceParameters = ResolveHitDistanceParameters();
 
             commandBuffer.SetGlobalFloat(NrdPixelStepId, pixelStep);
             commandBuffer.SetGlobalFloat(NrdSecondaryPixelStepId, pixelStep);
-            commandBuffer.SetGlobalFloat(NrdGuideModeId, 0.0f);
+            commandBuffer.SetGlobalFloat(NrdGuideModeId, GuideModePassthrough);
             commandBuffer.Blit(gbufferCore.NormalTexture, _packedNormalRoughnessTexture, _guidePackMaterial);
             commandBuffer.Blit(gbufferCore.ViewZTexture, _packedViewZTexture, _guidePackMaterial);
             commandBuffer.Blit(gbufferCore.MotionTexture, _packedMotionTexture, _guidePackMaterial);
@@ -353,7 +404,7 @@ namespace VoxelEngine.Render.NRD.Cores
             CameraHistory previousHistory = TryGetPreviousHistory(camera, out CameraHistory storedHistory)
                 ? storedHistory
                 : currentHistory;
-            Vector3 ambientHitDistanceParameters = ResolveDefaultHitDistanceParameters();
+            Vector3 ambientHitDistanceParameters = ResolveHitDistanceParameters();
 
             NrdSettings settings = new NrdSettings
             {
@@ -366,6 +417,13 @@ namespace VoxelEngine.Render.NRD.Cores
                 HitDistanceA = ambientHitDistanceParameters.x,
                 HitDistanceB = ambientHitDistanceParameters.y,
                 HitDistanceC = ambientHitDistanceParameters.z,
+                DiffusePrepassBlurRadius = Mathf.Max(_diffusePrepassBlurRadius, 0.0f),
+                MinBlurRadius = Mathf.Max(_minBlurRadius, 0.0f),
+                MaxBlurRadius = Mathf.Max(_maxBlurRadius, 0.0f),
+                PlaneDistanceSensitivity = Mathf.Max(_planeDistanceSensitivity, 0.001f),
+                FastHistoryClampingSigmaScale = Mathf.Clamp(_fastHistoryClampingSigmaScale, 1.0f, 3.0f),
+                MinHitDistanceWeight = Mathf.Clamp(_minHitDistanceWeight, 0.0f, 0.2f),
+                MaxStabilizedFrameNum = Mathf.Max(_maxStabilizedFrameNum, 0),
                 EnableValidation = 0
             };
 
@@ -500,7 +558,7 @@ namespace VoxelEngine.Render.NRD.Cores
 
         private void RecordNormHitDistancePacking(CommandBuffer commandBuffer, GbufferCore gbufferCore, RtaoCore rtaoCore)
         {
-            RecordNormHitDistancePacking(commandBuffer, gbufferCore, rtaoCore, ResolveDefaultHitDistanceParameters());
+            RecordNormHitDistancePacking(commandBuffer, gbufferCore, rtaoCore, ResolveHitDistanceParameters());
         }
 
         private void RecordNormHitDistancePacking(
@@ -512,21 +570,23 @@ namespace VoxelEngine.Render.NRD.Cores
             float pixelStep = rtaoCore.ResolutionMode == RtaoResolutionMode.Half ? 2.0f : 1.0f;
             commandBuffer.SetGlobalFloat(NrdPixelStepId, 1.0f);
             commandBuffer.SetGlobalFloat(NrdSecondaryPixelStepId, pixelStep);
-            commandBuffer.SetGlobalFloat(NrdGuideModeId, 1.0f);
+            commandBuffer.SetGlobalFloat(NrdGuideModeId, GuideModeNormHitDistance);
+            commandBuffer.SetGlobalTexture(NrdHitDistanceSourceId, rtaoCore.HitDistanceTexture);
             commandBuffer.SetGlobalTexture(NrdSecondarySourceId, gbufferCore.ViewZTexture);
             commandBuffer.SetGlobalVector(NrdSecondarySourceTexelSizeId, ComputeTexelSize(gbufferCore.ViewZTexture));
             commandBuffer.SetGlobalVector(
                 NrdHitDistanceParametersId,
                 new Vector4(hitDistanceParameters.x, hitDistanceParameters.y, hitDistanceParameters.z, 0.0f));
+            commandBuffer.SetGlobalFloat(NrdUseRawHitDistanceInputId, _useRawHitDistanceInput ? 1.0f : 0.0f);
             commandBuffer.Blit(rtaoCore.HitDistanceTexture, _packedDiffuseHitDistanceTexture, _guidePackMaterial);
-            commandBuffer.SetGlobalFloat(NrdGuideModeId, 0.0f);
+            commandBuffer.SetGlobalFloat(NrdGuideModeId, GuideModePassthrough);
             commandBuffer.SetGlobalFloat(NrdSecondaryPixelStepId, 1.0f);
         }
 
-        private static Vector3 ResolveDefaultHitDistanceParameters()
+        private Vector3 ResolveHitDistanceParameters()
         {
             // Official NRD defaults from ThirdParty/NRD/Include/NRDSettings.h
-            return DefaultReblurHitDistanceParameters;
+            return new Vector3(HitDistanceA, HitDistanceB, HitDistanceC);
         }
 
         private static Vector4 ComputeTexelSize(Texture texture)
@@ -565,7 +625,7 @@ namespace VoxelEngine.Render.NRD.Cores
         private GraphicsFormat ResolvePackedDiffuseHitDistanceFormat()
         {
             return _packedDiffuseHitDistanceFormat == GraphicsFormat.None
-                ? GraphicsFormat.R8_UNorm
+                ? GraphicsFormat.R16_SFloat
                 : _packedDiffuseHitDistanceFormat;
         }
 

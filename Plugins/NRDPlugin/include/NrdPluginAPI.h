@@ -25,6 +25,13 @@ typedef struct NrdSettingsNative
     float hitDistanceA;
     float hitDistanceB;
     float hitDistanceC;
+    float diffusePrepassBlurRadius;
+    float minBlurRadius;
+    float maxBlurRadius;
+    float planeDistanceSensitivity;
+    float fastHistoryClampingSigmaScale;
+    float minHitDistanceWeight;
+    int maxStabilizedFrameNum;
     int enableValidation;
 } NrdSettingsNative;
 

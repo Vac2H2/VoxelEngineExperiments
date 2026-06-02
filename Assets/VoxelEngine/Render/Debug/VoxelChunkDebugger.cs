@@ -11,7 +11,6 @@ using VoxelEngine.Data.Voxel;
 using VoxelEngine.Debugging;
 using VoxelEngine.LifeCycle.Manager;
 using VoxelEngine.Render.Cores;
-using VoxelEngine.Render.NRD.Cores;
 using VoxelEngine.Render.RenderBackend;
 using VoxelEngine.Render.RenderPipeline;
 
@@ -24,9 +23,13 @@ namespace VoxelEngine.Render.Debugging
         Depth = 2,
         Motion = 3,
         HitDist = 4,
-        NormHitDist = 5,
-        DecodedHitDist = 6,
-        DenoisedAo = 7,
+        RawAo = 5,
+        RawLight = 6,
+        DenoisedLight = 7,
+        RawReflection = 8,
+        Reflection = 9,
+        LitColor = 10,
+        Smoothness = 11,
     }
 
     public static class VoxelGbufferDebugView
@@ -106,9 +109,21 @@ namespace VoxelEngine.Render.Debugging
                 return;
             }
 
+            TryGetActiveRenderPipelineAsset(out VoxelEngineRenderPipelineAsset renderPipelineAsset);
+            TryGetActiveGbufferCore(out GbufferCore gbufferCore);
+            TryGetActiveSunLightCore(out SunLightCore sunLightCore);
+            TryGetActiveReflectionCore(out ReflectionCore reflectionCore);
             TryGetActiveRtaoCore(out RtaoCore rtaoCore);
-            TryGetActiveNrdCore(out RtaoDenoiseCore rtaoDenoiseCore);
-            float contentHeight = CalculatePanelContentHeight(rtaoCore != null, rtaoDenoiseCore != null);
+            TryGetActiveRtaoFrameAverageCore(out RtaoFrameAverageCore frameAverageCore);
+            TryGetActiveTaaCore(out TaaCore taaCore);
+            float contentHeight = CalculatePanelContentHeight(
+                renderPipelineAsset != null,
+                gbufferCore != null,
+                sunLightCore != null,
+                reflectionCore != null,
+                rtaoCore != null,
+                frameAverageCore != null,
+                taaCore != null);
             float panelHeight = Mathf.Min(
                 contentHeight,
                 Mathf.Max(Screen.height - (_panelMargin.y * 2.0f) - SettingsHintHeight - SettingsHintSpacing, 120.0f),
@@ -135,9 +150,21 @@ namespace VoxelEngine.Render.Debugging
 
             GUILayout.Space(4.0f);
             GUILayout.BeginHorizontal();
-            DrawPreviewButton("NormHitDist", VoxelGbufferPreviewTarget.NormHitDist);
-            DrawPreviewButton("DecodedHitDist", VoxelGbufferPreviewTarget.DecodedHitDist);
-            DrawPreviewButton("DenoisedAO", VoxelGbufferPreviewTarget.DenoisedAo);
+            DrawPreviewButton("RawAO", VoxelGbufferPreviewTarget.RawAo);
+            DrawPreviewButton("RawLight", VoxelGbufferPreviewTarget.RawLight);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4.0f);
+            GUILayout.BeginHorizontal();
+            DrawPreviewButton("DenoisedLight", VoxelGbufferPreviewTarget.DenoisedLight);
+            DrawPreviewButton("RawRefl", VoxelGbufferPreviewTarget.RawReflection);
+            DrawPreviewButton("Reflection", VoxelGbufferPreviewTarget.Reflection);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4.0f);
+            GUILayout.BeginHorizontal();
+            DrawPreviewButton("LitColor", VoxelGbufferPreviewTarget.LitColor);
+            DrawPreviewButton("Smooth", VoxelGbufferPreviewTarget.Smoothness);
             GUILayout.EndHorizontal();
 
             GUILayout.Space(8.0f);
@@ -146,18 +173,131 @@ namespace VoxelEngine.Render.Debugging
                 VoxelGbufferDebugView.Reset();
             }
 
+            if (gbufferCore != null)
+            {
+                GUILayout.Space(8.0f);
+                GUILayout.Label($"Global Roughness: {gbufferCore.GlobalRoughness:0.##}", _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawGlobalRoughnessButton(gbufferCore, 0.15f, "0.15");
+                DrawGlobalRoughnessButton(gbufferCore, 0.35f, "0.35");
+                DrawGlobalRoughnessButton(gbufferCore, 0.55f, "0.55");
+                DrawGlobalRoughnessButton(gbufferCore, 0.8f, "0.80");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(6.0f);
+                GUILayout.Label(
+                    $"Puddles: {(gbufferCore.PuddlesEnabled ? "On" : "Off")} | Coverage: {gbufferCore.PuddleCoverage:0.##}",
+                    _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawPuddleToggleButton(gbufferCore, false, "Off");
+                DrawPuddleToggleButton(gbufferCore, true, "On");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4.0f);
+                GUILayout.BeginHorizontal();
+                DrawPuddleCoverageButton(gbufferCore, 0.2f, "Low");
+                DrawPuddleCoverageButton(gbufferCore, 0.45f, "Med");
+                DrawPuddleCoverageButton(gbufferCore, 0.7f, "High");
+                GUILayout.EndHorizontal();
+            }
+
+            if (renderPipelineAsset != null)
+            {
+                GUILayout.Space(6.0f);
+                GUILayout.Label(
+                    $"Sky: {(renderPipelineAsset.SkyTexture != null ? "On" : "Off")} | Exposure: {renderPipelineAsset.SkyExposure:0.##} | Rot: {renderPipelineAsset.SkyRotation:0}",
+                    _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawSkyExposureButton(renderPipelineAsset, 0.5f, "0.5x");
+                DrawSkyExposureButton(renderPipelineAsset, 1.0f, "1x");
+                DrawSkyExposureButton(renderPipelineAsset, 2.0f, "2x");
+                DrawSkyExposureButton(renderPipelineAsset, 4.0f, "4x");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4.0f);
+                GUILayout.BeginHorizontal();
+                DrawSkyRotationButton(renderPipelineAsset, 0.0f, "0");
+                DrawSkyRotationButton(renderPipelineAsset, 90.0f, "90");
+                DrawSkyRotationButton(renderPipelineAsset, 180.0f, "180");
+                DrawSkyRotationButton(renderPipelineAsset, 270.0f, "270");
+                GUILayout.EndHorizontal();
+            }
+
+            if (taaCore != null)
+            {
+                GUILayout.Space(6.0f);
+                GUILayout.Label(
+                    $"TAA: {(taaCore.Enabled ? "On" : "Off")} | Weight: {taaCore.HistoryWeight:0.##} | Jitter: {taaCore.JitterSpread:0.##}",
+                    _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawTaaToggleButton(taaCore, false, "Off");
+                DrawTaaToggleButton(taaCore, true, "On");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4.0f);
+                GUILayout.BeginHorizontal();
+                DrawTaaHistoryWeightButton(taaCore, 0.85f, "W 0.85");
+                DrawTaaHistoryWeightButton(taaCore, 0.92f, "W 0.92");
+                DrawTaaHistoryWeightButton(taaCore, 0.97f, "W 0.97");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4.0f);
+                GUILayout.BeginHorizontal();
+                DrawTaaJitterSpreadButton(taaCore, 0.0f, "J 0");
+                DrawTaaJitterSpreadButton(taaCore, 0.25f, "J 0.25");
+                DrawTaaJitterSpreadButton(taaCore, 0.5f, "J 0.5");
+                DrawTaaJitterSpreadButton(taaCore, 1.0f, "J 1");
+                GUILayout.EndHorizontal();
+            }
+
+            if (sunLightCore != null)
+            {
+                GUILayout.Space(6.0f);
+                GUILayout.Label(
+                    $"Sun Disk: {(sunLightCore.VisibleSunEnabled ? "On" : "Off")} | Intensity: {sunLightCore.VisibleSunIntensity:0.#}",
+                    _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawSunDiskToggleButton(sunLightCore, false, "Disk Off");
+                DrawSunDiskToggleButton(sunLightCore, true, "Disk On");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4.0f);
+                GUILayout.BeginHorizontal();
+                DrawVisibleSunIntensityButton(sunLightCore, 8.0f, "8x");
+                DrawVisibleSunIntensityButton(sunLightCore, 18.0f, "18x");
+                DrawVisibleSunIntensityButton(sunLightCore, 32.0f, "32x");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4.0f);
+                GUILayout.Label("Sunlight Color", _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawSunLightColorButton(sunLightCore, Color.white, "White");
+                DrawSunLightColorButton(sunLightCore, new Color(1.0f, 0.86f, 0.62f, 1.0f), "Warm");
+                DrawSunLightColorButton(sunLightCore, new Color(1.0f, 0.62f, 0.32f, 1.0f), "Amber");
+                DrawSunLightColorButton(sunLightCore, new Color(0.72f, 0.84f, 1.0f, 1.0f), "Cool");
+                GUILayout.EndHorizontal();
+            }
+
+            if (reflectionCore != null)
+            {
+                GUILayout.Space(6.0f);
+                GUILayout.Label(
+                    $"Reflection: {(reflectionCore.Enabled ? "On" : "Off")} | Spatial: {(reflectionCore.SpatialDenoiseEnabled ? "On" : "Off")}",
+                    _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawReflectionToggleButton(reflectionCore, false, "Off");
+                DrawReflectionToggleButton(reflectionCore, true, "On");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4.0f);
+                GUILayout.BeginHorizontal();
+                DrawReflectionSpatialToggleButton(reflectionCore, false, "Spatial Off");
+                DrawReflectionSpatialToggleButton(reflectionCore, true, "Spatial On");
+                GUILayout.EndHorizontal();
+            }
+
             if (rtaoCore != null)
             {
-                if (rtaoDenoiseCore != null)
-                {
-                    GUILayout.Space(8.0f);
-                    string backendLabel = rtaoDenoiseCore.NativeBackendActive
-                        ? "Native"
-                        : (rtaoDenoiseCore.StrictNativeBackend ? "Unavailable" : "Fallback");
-                    string strictLabel = rtaoDenoiseCore.StrictNativeBackend ? "On" : "Off";
-                    GUILayout.Label($"NRD Backend: {backendLabel} | Strict: {strictLabel}", _labelStyle);
-                }
-
                 GUILayout.Space(8.0f);
                 GUILayout.Label($"RTAO Resolution: {rtaoCore.ResolutionMode}", _labelStyle);
                 GUILayout.BeginHorizontal();
@@ -173,6 +313,57 @@ namespace VoxelEngine.Render.Debugging
                 DrawAmbientRtaoRppButton(rtaoCore, 4);
                 DrawAmbientRtaoRppButton(rtaoCore, 8);
                 GUILayout.EndHorizontal();
+
+                GUILayout.Space(6.0f);
+                GUILayout.Label($"RTAO Noise: {rtaoCore.NoiseMode}", _labelStyle);
+                GUILayout.BeginHorizontal();
+                DrawRtaoNoiseModeButton(rtaoCore, RtaoNoiseMode.AnimatedStbn, "Animated");
+                DrawRtaoNoiseModeButton(rtaoCore, RtaoNoiseMode.FixedScreenStbn, "Fixed");
+                GUILayout.EndHorizontal();
+
+                if (frameAverageCore != null)
+                {
+                    GUILayout.Space(6.0f);
+                    GUILayout.Label(
+                        $"Spatial: {(frameAverageCore.SpatialEnabled ? "On" : "Off")} | R {frameAverageCore.SpatialRadius:0.#} | S {frameAverageCore.SpatialSampleCount}",
+                        _labelStyle);
+                    GUILayout.BeginHorizontal();
+                    DrawSpatialToggleButton(frameAverageCore, false, "Off");
+                    DrawSpatialToggleButton(frameAverageCore, true, "On");
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Space(4.0f);
+                    GUILayout.BeginHorizontal();
+                    DrawSpatialRadiusButton(frameAverageCore, 2.0f, "R 2");
+                    DrawSpatialRadiusButton(frameAverageCore, 4.0f, "R 4");
+                    DrawSpatialRadiusButton(frameAverageCore, 8.0f, "R 8");
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Space(4.0f);
+                    GUILayout.BeginHorizontal();
+                    DrawSpatialSampleCountButton(frameAverageCore, 8, "S 8");
+                    DrawSpatialSampleCountButton(frameAverageCore, 12, "S 12");
+                    DrawSpatialSampleCountButton(frameAverageCore, 16, "S 16");
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Space(6.0f);
+                    DrawAmbientVisibilitySlider(frameAverageCore);
+
+                    GUILayout.Space(4.0f);
+                    DrawAoStepSizeSlider(frameAverageCore);
+
+                    GUILayout.Space(4.0f);
+                    DrawAoMinVisibilitySlider(frameAverageCore);
+
+                    GUILayout.Space(4.0f);
+                    GUILayout.Label("Ambient Light Color", _labelStyle);
+                    GUILayout.BeginHorizontal();
+                    DrawAmbientLightColorButton(frameAverageCore, Color.white, "White");
+                    DrawAmbientLightColorButton(frameAverageCore, new Color(0.68f, 0.78f, 1.0f, 1.0f), "Sky");
+                    DrawAmbientLightColorButton(frameAverageCore, new Color(1.0f, 0.82f, 0.62f, 1.0f), "Warm");
+                    DrawAmbientLightColorButton(frameAverageCore, new Color(0.56f, 0.64f, 0.78f, 1.0f), "Dusk");
+                    GUILayout.EndHorizontal();
+                }
             }
 
             GUILayout.EndScrollView();
@@ -237,14 +428,376 @@ namespace VoxelEngine.Render.Debugging
             GUI.backgroundColor = originalColor;
         }
 
-        private float CalculatePanelContentHeight(bool hasRtaoControls, bool hasNrdControls)
+        private void DrawGlobalRoughnessButton(GbufferCore gbufferCore, float roughness, string label)
         {
-            if (!hasRtaoControls)
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Approximately(gbufferCore.GlobalRoughness, roughness))
             {
-                return 124.0f;
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
             }
 
-            return hasNrdControls ? 312.0f : 284.0f;
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                gbufferCore.GlobalRoughness = roughness;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawPuddleToggleButton(GbufferCore gbufferCore, bool enabled, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (gbufferCore.PuddlesEnabled == enabled)
+            {
+                GUI.backgroundColor = new Color(0.35f, 0.7f, 0.95f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                gbufferCore.PuddlesEnabled = enabled;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawPuddleCoverageButton(GbufferCore gbufferCore, float coverage, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Approximately(gbufferCore.PuddleCoverage, coverage))
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                gbufferCore.PuddleCoverage = coverage;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawSkyExposureButton(VoxelEngineRenderPipelineAsset asset, float exposure, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Approximately(asset.SkyExposure, exposure))
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                asset.SkyExposure = exposure;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawSkyRotationButton(VoxelEngineRenderPipelineAsset asset, float rotation, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Abs(Mathf.DeltaAngle(asset.SkyRotation, rotation)) < 1e-3f)
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                asset.SkyRotation = rotation;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawSunDiskToggleButton(SunLightCore sunLightCore, bool enabled, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (sunLightCore.VisibleSunEnabled == enabled)
+            {
+                GUI.backgroundColor = new Color(0.35f, 0.7f, 0.95f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                sunLightCore.VisibleSunEnabled = enabled;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawVisibleSunIntensityButton(SunLightCore sunLightCore, float intensity, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Approximately(sunLightCore.VisibleSunIntensity, intensity))
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                sunLightCore.VisibleSunIntensity = intensity;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawSunLightColorButton(SunLightCore sunLightCore, Color color, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (ApproximatelyColor(sunLightCore.SunLightColor, color))
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                sunLightCore.SunLightColor = color;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawRtaoNoiseModeButton(
+            RtaoCore rtaoCore,
+            RtaoNoiseMode noiseMode,
+            string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (rtaoCore.NoiseMode == noiseMode)
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                rtaoCore.NoiseMode = noiseMode;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawReflectionToggleButton(ReflectionCore reflectionCore, bool enabled, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (reflectionCore.Enabled == enabled)
+            {
+                GUI.backgroundColor = new Color(0.35f, 0.7f, 0.95f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                reflectionCore.Enabled = enabled;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawReflectionSpatialToggleButton(ReflectionCore reflectionCore, bool enabled, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (reflectionCore.SpatialDenoiseEnabled == enabled)
+            {
+                GUI.backgroundColor = new Color(0.35f, 0.7f, 0.95f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                reflectionCore.SpatialDenoiseEnabled = enabled;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawSpatialToggleButton(RtaoFrameAverageCore frameAverageCore, bool enabled, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (frameAverageCore.SpatialEnabled == enabled)
+            {
+                GUI.backgroundColor = new Color(0.35f, 0.7f, 0.95f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                frameAverageCore.SpatialEnabled = enabled;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawSpatialRadiusButton(RtaoFrameAverageCore frameAverageCore, float radius, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Abs(frameAverageCore.SpatialRadius - radius) < 1e-3f)
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                frameAverageCore.SpatialRadius = radius;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawSpatialSampleCountButton(RtaoFrameAverageCore frameAverageCore, int sampleCount, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (frameAverageCore.SpatialSampleCount == sampleCount)
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                frameAverageCore.SpatialSampleCount = sampleCount;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawAmbientVisibilitySlider(RtaoFrameAverageCore frameAverageCore)
+        {
+            GUILayout.Label($"Ambient Visibility: {frameAverageCore.AmbientVisibility:0.##}", _labelStyle);
+            frameAverageCore.AmbientVisibility = GUILayout.HorizontalSlider(
+                frameAverageCore.AmbientVisibility,
+                0.0f,
+                1.0f,
+                GUILayout.Height(_buttonHeight));
+        }
+
+        private void DrawAoStepSizeSlider(RtaoFrameAverageCore frameAverageCore)
+        {
+            GUILayout.Label($"AO Quantize Step: {frameAverageCore.AoStepSize:0.##}", _labelStyle);
+            frameAverageCore.AoStepSize = GUILayout.HorizontalSlider(
+                frameAverageCore.AoStepSize,
+                0.0f,
+                20.0f,
+                GUILayout.Height(_buttonHeight));
+        }
+
+        private void DrawAoMinVisibilitySlider(RtaoFrameAverageCore frameAverageCore)
+        {
+            GUILayout.Label($"AO Min Visibility: {frameAverageCore.AoMinVisibility:0.##}", _labelStyle);
+            frameAverageCore.AoMinVisibility = GUILayout.HorizontalSlider(
+                frameAverageCore.AoMinVisibility,
+                0.0f,
+                1.0f,
+                GUILayout.Height(_buttonHeight));
+        }
+
+        private void DrawAmbientLightColorButton(RtaoFrameAverageCore frameAverageCore, Color color, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (ApproximatelyColor(frameAverageCore.AmbientLightColor, color))
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                frameAverageCore.AmbientLightColor = color;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawTaaToggleButton(TaaCore taaCore, bool enabled, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (taaCore.Enabled == enabled)
+            {
+                GUI.backgroundColor = new Color(0.35f, 0.7f, 0.95f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                taaCore.Enabled = enabled;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawTaaHistoryWeightButton(TaaCore taaCore, float historyWeight, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Abs(taaCore.HistoryWeight - historyWeight) < 1e-3f)
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                taaCore.HistoryWeight = historyWeight;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private void DrawTaaJitterSpreadButton(TaaCore taaCore, float jitterSpread, string label)
+        {
+            Color originalColor = GUI.backgroundColor;
+            if (Mathf.Abs(taaCore.JitterSpread - jitterSpread) < 1e-3f)
+            {
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.45f, 1.0f);
+            }
+
+            if (GUILayout.Button(label, _buttonStyle, GUILayout.Height(_buttonHeight)))
+            {
+                taaCore.JitterSpread = jitterSpread;
+            }
+
+            GUI.backgroundColor = originalColor;
+        }
+
+        private static bool ApproximatelyColor(Color left, Color right)
+        {
+            return Mathf.Abs(left.r - right.r) < 1e-3f &&
+                   Mathf.Abs(left.g - right.g) < 1e-3f &&
+                   Mathf.Abs(left.b - right.b) < 1e-3f &&
+                   Mathf.Abs(left.a - right.a) < 1e-3f;
+        }
+
+        private float CalculatePanelContentHeight(
+            bool hasSkyControls,
+            bool hasGbufferControls,
+            bool hasSunLightControls,
+            bool hasReflectionControls,
+            bool hasRtaoControls,
+            bool hasFrameAverageControls,
+            bool hasTaaControls)
+        {
+            float contentHeight = 188.0f;
+            if (hasGbufferControls)
+            {
+                contentHeight += 150.0f;
+            }
+
+            if (hasSkyControls)
+            {
+                contentHeight += 82.0f;
+            }
+
+            if (hasSunLightControls)
+            {
+                contentHeight += 146.0f;
+            }
+
+            if (hasTaaControls)
+            {
+                contentHeight += 124.0f;
+            }
+
+            if (hasReflectionControls)
+            {
+                contentHeight += 96.0f;
+            }
+
+            if (!hasRtaoControls)
+            {
+                return contentHeight;
+            }
+
+            return contentHeight + (hasFrameAverageControls ? 522.0f : 222.0f);
         }
 
         private void EnsureStyles()
@@ -303,6 +856,32 @@ namespace VoxelEngine.Render.Debugging
                    GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset;
         }
 
+        private static bool TryGetActiveRenderPipelineAsset(out VoxelEngineRenderPipelineAsset asset)
+        {
+            asset = null;
+
+            try
+            {
+                if (RenderPipelineManager.currentPipeline is VoxelEngineRenderPipeline renderPipeline &&
+                    renderPipeline.Asset != null)
+                {
+                    asset = renderPipeline.Asset;
+                    return true;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset graphicsAsset)
+            {
+                asset = graphicsAsset;
+                return true;
+            }
+
+            return false;
+        }
+
         private static bool TryGetActiveRtaoCore(out RtaoCore rtaoCore)
         {
             rtaoCore = null;
@@ -330,17 +909,17 @@ namespace VoxelEngine.Render.Debugging
             return false;
         }
 
-        private static bool TryGetActiveNrdCore(out RtaoDenoiseCore rtaoDenoiseCore)
+        private static bool TryGetActiveGbufferCore(out GbufferCore gbufferCore)
         {
-            rtaoDenoiseCore = null;
+            gbufferCore = null;
 
             try
             {
                 if (RenderPipelineManager.currentPipeline is VoxelEngineRenderPipeline renderPipeline &&
                     renderPipeline.Asset != null &&
-                    renderPipeline.Asset.RtaoDenoiseCore != null)
+                    renderPipeline.Asset.GbufferCore != null)
                 {
-                    rtaoDenoiseCore = renderPipeline.Asset.RtaoDenoiseCore;
+                    gbufferCore = renderPipeline.Asset.GbufferCore;
                     return true;
                 }
             }
@@ -348,14 +927,123 @@ namespace VoxelEngine.Render.Debugging
             {
             }
 
-            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.RtaoDenoiseCore != null)
+            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.GbufferCore != null)
             {
-                rtaoDenoiseCore = asset.RtaoDenoiseCore;
+                gbufferCore = asset.GbufferCore;
                 return true;
             }
 
             return false;
         }
+
+        private static bool TryGetActiveSunLightCore(out SunLightCore sunLightCore)
+        {
+            sunLightCore = null;
+
+            try
+            {
+                if (RenderPipelineManager.currentPipeline is VoxelEngineRenderPipeline renderPipeline &&
+                    renderPipeline.Asset != null &&
+                    renderPipeline.Asset.SunLightCore != null)
+                {
+                    sunLightCore = renderPipeline.Asset.SunLightCore;
+                    return true;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.SunLightCore != null)
+            {
+                sunLightCore = asset.SunLightCore;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetActiveReflectionCore(out ReflectionCore reflectionCore)
+        {
+            reflectionCore = null;
+
+            try
+            {
+                if (RenderPipelineManager.currentPipeline is VoxelEngineRenderPipeline renderPipeline &&
+                    renderPipeline.Asset != null &&
+                    renderPipeline.Asset.ReflectionCore != null)
+                {
+                    reflectionCore = renderPipeline.Asset.ReflectionCore;
+                    return true;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.ReflectionCore != null)
+            {
+                reflectionCore = asset.ReflectionCore;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetActiveRtaoFrameAverageCore(out RtaoFrameAverageCore frameAverageCore)
+        {
+            frameAverageCore = null;
+
+            try
+            {
+                if (RenderPipelineManager.currentPipeline is VoxelEngineRenderPipeline renderPipeline &&
+                    renderPipeline.Asset != null &&
+                    renderPipeline.Asset.RtaoFrameAverageCore != null)
+                {
+                    frameAverageCore = renderPipeline.Asset.RtaoFrameAverageCore;
+                    return true;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.RtaoFrameAverageCore != null)
+            {
+                frameAverageCore = asset.RtaoFrameAverageCore;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetActiveTaaCore(out TaaCore taaCore)
+        {
+            taaCore = null;
+
+            try
+            {
+                if (RenderPipelineManager.currentPipeline is VoxelEngineRenderPipeline renderPipeline &&
+                    renderPipeline.Asset != null &&
+                    renderPipeline.Asset.TaaCore != null)
+                {
+                    taaCore = renderPipeline.Asset.TaaCore;
+                    return true;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            if (GraphicsSettings.currentRenderPipeline is VoxelEngineRenderPipelineAsset asset && asset.TaaCore != null)
+            {
+                taaCore = asset.TaaCore;
+                return true;
+            }
+
+            return false;
+        }
+
     }
 
     [DisallowMultipleComponent]

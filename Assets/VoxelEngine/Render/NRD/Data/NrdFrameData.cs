@@ -26,23 +26,24 @@ namespace VoxelEngine.Render.NRD.Data
 
         public static NrdMatrix4x4 FromUnityMatrix(Matrix4x4 matrix)
         {
+            // NRD CommonSettings expects column-major matrices with column-vector usage.
             return new NrdMatrix4x4
             {
                 M00 = matrix.m00,
-                M01 = matrix.m01,
-                M02 = matrix.m02,
-                M03 = matrix.m03,
-                M10 = matrix.m10,
+                M01 = matrix.m10,
+                M02 = matrix.m20,
+                M03 = matrix.m30,
+                M10 = matrix.m01,
                 M11 = matrix.m11,
-                M12 = matrix.m12,
-                M13 = matrix.m13,
-                M20 = matrix.m20,
-                M21 = matrix.m21,
+                M12 = matrix.m21,
+                M13 = matrix.m31,
+                M20 = matrix.m02,
+                M21 = matrix.m12,
                 M22 = matrix.m22,
-                M23 = matrix.m23,
-                M30 = matrix.m30,
-                M31 = matrix.m31,
-                M32 = matrix.m32,
+                M23 = matrix.m32,
+                M30 = matrix.m03,
+                M31 = matrix.m13,
+                M32 = matrix.m23,
                 M33 = matrix.m33
             };
         }

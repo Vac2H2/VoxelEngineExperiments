@@ -14,6 +14,13 @@ namespace VoxelEngine.Render.NRD.Data
         public float HitDistanceA;
         public float HitDistanceB;
         public float HitDistanceC;
+        public float DiffusePrepassBlurRadius;
+        public float MinBlurRadius;
+        public float MaxBlurRadius;
+        public float PlaneDistanceSensitivity;
+        public float FastHistoryClampingSigmaScale;
+        public float MinHitDistanceWeight;
+        public int MaxStabilizedFrameNum;
         public int EnableValidation;
     }
 }

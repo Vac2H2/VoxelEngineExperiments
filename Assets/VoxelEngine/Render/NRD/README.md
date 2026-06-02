@@ -27,6 +27,9 @@ than general render-backend lifetime.
 - `RtaoDenoiseCore` outputs denoised AO from `REBLUR_DIFFUSE_OCCLUSION`:
   - raw front-end input = `NormHitDist`
   - denoised output = normalized hit distance used directly as AO
+- `RtaoDenoiseCore` exposes the three `hitDistParams` values used by `REBLUR_FrontEnd_GetNormHitDist(hitDist, viewZ, hitDistParams, 1.0)`:
+  - defaults are the official NRD values `A = 3.0`, `B = 0.1`, `C = 20.0`
+  - the same values are passed to native `REBLUR_DIFFUSE_OCCLUSION` settings
 - the native backend is a real `NRDIntegration` / `NRI` path hosted by `Plugins/NRDPlugin`
 
 ## Vendor Pin

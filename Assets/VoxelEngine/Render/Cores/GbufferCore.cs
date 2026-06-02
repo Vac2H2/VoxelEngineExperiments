@@ -16,6 +16,13 @@ namespace VoxelEngine.Render.Cores
         public static readonly int ViewZTextureId = Shader.PropertyToID("_VoxelEngineGbufferViewZ");
         public static readonly int MotionTextureId = Shader.PropertyToID("_VoxelEngineGbufferMotion");
         public static readonly int CameraFarClipId = Shader.PropertyToID("_VoxelEngineCameraFarClip");
+        public static readonly int GlobalRoughnessId = Shader.PropertyToID("_VoxelEngineGlobalRoughness");
+        public static readonly int PuddleEnabledId = Shader.PropertyToID("_VoxelEnginePuddleEnabled");
+        public static readonly int PuddleCoverageId = Shader.PropertyToID("_VoxelEnginePuddleCoverage");
+        public static readonly int PuddleScaleId = Shader.PropertyToID("_VoxelEnginePuddleScale");
+        public static readonly int PuddleRoughnessId = Shader.PropertyToID("_VoxelEnginePuddleRoughness");
+        public static readonly int PuddleDarkeningId = Shader.PropertyToID("_VoxelEnginePuddleDarkening");
+        public static readonly int PuddleMinNormalYId = Shader.PropertyToID("_VoxelEnginePuddleMinNormalY");
 
         public static RenderTargetIdentifier AlbedoTarget => new RenderTargetIdentifier(AlbedoTextureId);
         public static RenderTargetIdentifier NormalTarget => new RenderTargetIdentifier(NormalTextureId);
@@ -37,6 +44,9 @@ namespace VoxelEngine.Render.Cores
         private static readonly int CameraForwardWsId = Shader.PropertyToID("_CameraForwardWS");
         private static readonly int PreviousCameraPositionWsId = Shader.PropertyToID("_PreviousCameraPositionWS");
         private static readonly int PreviousCameraForwardWsId = Shader.PropertyToID("_PreviousCameraForwardWS");
+        private static readonly int ProjectionJitterId = Shader.PropertyToID("_VoxelEngineProjectionJitter");
+        private static readonly int PreviousProjectionJitterId = Shader.PropertyToID("_VoxelEnginePreviousProjectionJitter");
+        private static readonly int ScreenSizeId = Shader.PropertyToID("_VoxelEngineGbufferScreenSize");
         private static readonly int BackgroundColorId = Shader.PropertyToID("_BackgroundColor");
         private static readonly int CurrentWorldToClipId = Shader.PropertyToID("_CurrentWorldToClip");
         private static readonly int PreviousWorldToClipId = Shader.PropertyToID("_PreviousWorldToClip");
@@ -45,11 +55,11 @@ namespace VoxelEngine.Render.Cores
         private static readonly int AllInstanceMaskId = Shader.PropertyToID("_AllInstanceMask");
         private static readonly int OpaqueInstanceMaskId = Shader.PropertyToID("_OpaqueInstanceMask");
         private static readonly int DebugAabbOverlayInstanceMaskId = Shader.PropertyToID("_DebugAabbOverlayInstanceMask");
-
         [NonSerialized] private readonly Dictionary<int, CameraHistory> _historyByCameraId = new Dictionary<int, CameraHistory>();
         [NonSerialized] private RenderTexture _normalTexture;
         [NonSerialized] private RenderTexture _viewZTexture;
         [NonSerialized] private RenderTexture _motionTexture;
+        [NonSerialized] private bool _loggedUnavailableReason;
 
         [SerializeField] private RayTracingShader _rayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
@@ -58,15 +68,65 @@ namespace VoxelEngine.Render.Cores
         [SerializeField] private GraphicsFormat _depthFormat = GraphicsFormat.None;
         [SerializeField] private GraphicsFormat _viewZFormat = GraphicsFormat.None;
         [SerializeField] private GraphicsFormat _motionFormat = GraphicsFormat.None;
+        [SerializeField, Range(0.0f, 1.0f)] private float _globalRoughness = 0.55f;
+        [SerializeField] private bool _puddlesEnabled = true;
+        [SerializeField, Range(0.0f, 1.0f)] private float _puddleCoverage = 0.35f;
+        [SerializeField, Min(0.001f)] private float _puddleScale = 0.055f;
+        [SerializeField, Range(0.0f, 1.0f)] private float _puddleRoughness = 0.06f;
+        [SerializeField, Range(0.0f, 1.0f)] private float _puddleDarkening = 0.35f;
+        [SerializeField, Range(0.0f, 1.0f)] private float _puddleMinNormalY = 0.78f;
 
         public RenderTexture NormalTexture => _normalTexture;
         public RenderTexture ViewZTexture => _viewZTexture;
         public RenderTexture MotionTexture => _motionTexture;
 
+        public float GlobalRoughness
+        {
+            get => _globalRoughness;
+            set => _globalRoughness = Mathf.Clamp01(value);
+        }
+
+        public bool PuddlesEnabled
+        {
+            get => _puddlesEnabled;
+            set => _puddlesEnabled = value;
+        }
+
+        public float PuddleCoverage
+        {
+            get => _puddleCoverage;
+            set => _puddleCoverage = Mathf.Clamp01(value);
+        }
+
+        public float PuddleScale
+        {
+            get => _puddleScale;
+            set => _puddleScale = Mathf.Max(value, 0.001f);
+        }
+
+        public float PuddleRoughness
+        {
+            get => _puddleRoughness;
+            set => _puddleRoughness = Mathf.Clamp01(value);
+        }
+
+        public float PuddleDarkening
+        {
+            get => _puddleDarkening;
+            set => _puddleDarkening = Mathf.Clamp01(value);
+        }
+
+        public float PuddleMinNormalY
+        {
+            get => _puddleMinNormalY;
+            set => _puddleMinNormalY = Mathf.Clamp01(value);
+        }
+
         public bool Record(
             CommandBuffer commandBuffer,
             Camera camera,
-            VoxelEngineRenderBackend renderBackend)
+            VoxelEngineRenderBackend renderBackend,
+            Vector2 projectionJitter = default)
         {
             if (commandBuffer == null)
             {
@@ -85,6 +145,7 @@ namespace VoxelEngine.Render.Cores
 
             if (_rayTracingShader == null || !SystemInfo.supportsRayTracing || !renderBackend.HasInstances)
             {
+                LogUnavailableReason(renderBackend);
                 return false;
             }
 
@@ -96,7 +157,7 @@ namespace VoxelEngine.Render.Cores
             }
 
             Matrix4x4 currentWorldToClip = ComputeWorldToClipMatrix(camera);
-            CameraHistory currentHistory = CreateCameraHistory(camera, currentWorldToClip);
+            CameraHistory currentHistory = CreateCameraHistory(camera, currentWorldToClip, projectionJitter);
             CameraHistory previousHistory = TryGetPreviousHistory(camera, out CameraHistory storedHistory)
                 ? storedHistory
                 : currentHistory;
@@ -120,8 +181,9 @@ namespace VoxelEngine.Render.Cores
                     PixelCoordToViewDirWsId,
                     ComputePixelCoordToWorldSpaceViewDirectionMatrix(camera, width, height));
 
-                Vector3 cameraPosition = camera.transform.position;
-                Vector3 cameraForward = camera.transform.forward;
+                VoxelCameraState cameraState = VoxelCameraState.FromCamera(camera);
+                Vector3 cameraPosition = cameraState.Position;
+                Vector3 cameraForward = cameraState.Forward;
                 commandBuffer.SetRayTracingVectorParam(
                     _rayTracingShader,
                     CameraPositionWsId,
@@ -146,6 +208,22 @@ namespace VoxelEngine.Render.Cores
                         previousHistory.Forward.y,
                         previousHistory.Forward.z,
                         0.0f));
+                commandBuffer.SetRayTracingVectorParam(
+                    _rayTracingShader,
+                    ProjectionJitterId,
+                    new Vector4(projectionJitter.x, projectionJitter.y, 0.0f, 0.0f));
+                commandBuffer.SetRayTracingVectorParam(
+                    _rayTracingShader,
+                    PreviousProjectionJitterId,
+                    new Vector4(
+                        previousHistory.ProjectionJitter.x,
+                        previousHistory.ProjectionJitter.y,
+                        0.0f,
+                        0.0f));
+                commandBuffer.SetRayTracingVectorParam(
+                    _rayTracingShader,
+                    ScreenSizeId,
+                    new Vector4(width, height, 1.0f / width, 1.0f / height));
                 commandBuffer.SetRayTracingMatrixParam(
                     _rayTracingShader,
                     CurrentWorldToClipId,
@@ -177,6 +255,34 @@ namespace VoxelEngine.Render.Cores
                     _rayTracingShader,
                     DebugAabbOverlayInstanceMaskId,
                     unchecked((int)VoxelRtasManager.DebugAabbOverlayInstanceMask));
+                commandBuffer.SetRayTracingFloatParam(
+                    _rayTracingShader,
+                    VoxelGbufferIds.GlobalRoughnessId,
+                    Mathf.Clamp01(_globalRoughness));
+                commandBuffer.SetRayTracingIntParam(
+                    _rayTracingShader,
+                    VoxelGbufferIds.PuddleEnabledId,
+                    _puddlesEnabled ? 1 : 0);
+                commandBuffer.SetRayTracingFloatParam(
+                    _rayTracingShader,
+                    VoxelGbufferIds.PuddleCoverageId,
+                    Mathf.Clamp01(_puddleCoverage));
+                commandBuffer.SetRayTracingFloatParam(
+                    _rayTracingShader,
+                    VoxelGbufferIds.PuddleScaleId,
+                    Mathf.Max(_puddleScale, 0.001f));
+                commandBuffer.SetRayTracingFloatParam(
+                    _rayTracingShader,
+                    VoxelGbufferIds.PuddleRoughnessId,
+                    Mathf.Clamp01(_puddleRoughness));
+                commandBuffer.SetRayTracingFloatParam(
+                    _rayTracingShader,
+                    VoxelGbufferIds.PuddleDarkeningId,
+                    Mathf.Clamp01(_puddleDarkening));
+                commandBuffer.SetRayTracingFloatParam(
+                    _rayTracingShader,
+                    VoxelGbufferIds.PuddleMinNormalYId,
+                    Mathf.Clamp01(_puddleMinNormalY));
                 commandBuffer.SetRayTracingTextureParam(
                     _rayTracingShader,
                     VoxelGbufferIds.AlbedoTextureId,
@@ -210,6 +316,13 @@ namespace VoxelEngine.Render.Cores
                 commandBuffer.SetGlobalTexture(VoxelGbufferIds.ViewZTextureId, _viewZTexture);
                 commandBuffer.SetGlobalTexture(VoxelGbufferIds.MotionTextureId, _motionTexture);
                 commandBuffer.SetGlobalFloat(VoxelGbufferIds.CameraFarClipId, rayTMax);
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.GlobalRoughnessId, Mathf.Clamp01(_globalRoughness));
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.PuddleEnabledId, _puddlesEnabled ? 1.0f : 0.0f);
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.PuddleCoverageId, Mathf.Clamp01(_puddleCoverage));
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.PuddleScaleId, Mathf.Max(_puddleScale, 0.001f));
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.PuddleRoughnessId, Mathf.Clamp01(_puddleRoughness));
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.PuddleDarkeningId, Mathf.Clamp01(_puddleDarkening));
+                commandBuffer.SetGlobalFloat(VoxelGbufferIds.PuddleMinNormalYId, Mathf.Clamp01(_puddleMinNormalY));
                 RememberHistory(camera, currentHistory);
                 return true;
             }
@@ -273,6 +386,25 @@ namespace VoxelEngine.Render.Cores
             return string.IsNullOrWhiteSpace(_shaderPassName)
                 ? DefaultShaderPassName
                 : _shaderPassName;
+        }
+
+        private void LogUnavailableReason(VoxelEngineRenderBackend renderBackend)
+        {
+            if (_loggedUnavailableReason)
+            {
+                return;
+            }
+
+            _loggedUnavailableReason = true;
+            string reason = _rayTracingShader == null
+                ? "G-buffer ray tracing shader is not assigned."
+                : !SystemInfo.supportsRayTracing
+                    ? $"SystemInfo.supportsRayTracing is false. GraphicsDeviceType={SystemInfo.graphicsDeviceType}."
+                    : renderBackend != null && !renderBackend.HasInstances
+                        ? "RTAS has no registered voxel instances."
+                        : "Unknown unavailable condition.";
+
+            Debug.LogWarning($"[{nameof(GbufferCore)}] Skipping voxel gbuffer. {reason}");
         }
 
         private static RenderTextureDescriptor CreateTextureDescriptor(
@@ -397,10 +529,13 @@ namespace VoxelEngine.Render.Cores
             _historyByCameraId[camera.GetInstanceID()] = history;
         }
 
-        private static CameraHistory CreateCameraHistory(Camera camera, Matrix4x4 worldToClip)
+        private static CameraHistory CreateCameraHistory(
+            Camera camera,
+            Matrix4x4 worldToClip,
+            Vector2 projectionJitter)
         {
-            Transform transform = camera.transform;
-            return new CameraHistory(transform.position, transform.forward, worldToClip);
+            VoxelCameraState cameraState = VoxelCameraState.FromCamera(camera);
+            return new CameraHistory(cameraState.Position, cameraState.Forward, worldToClip, projectionJitter);
         }
 
         private static Matrix4x4 ComputeWorldToClipMatrix(Camera camera)
@@ -448,11 +583,16 @@ namespace VoxelEngine.Render.Cores
 
         private readonly struct CameraHistory
         {
-            public CameraHistory(Vector3 position, Vector3 forward, Matrix4x4 worldToClip)
+            public CameraHistory(
+                Vector3 position,
+                Vector3 forward,
+                Matrix4x4 worldToClip,
+                Vector2 projectionJitter)
             {
                 Position = position;
                 Forward = forward;
                 WorldToClip = worldToClip;
+                ProjectionJitter = projectionJitter;
             }
 
             public Vector3 Position { get; }
@@ -460,6 +600,8 @@ namespace VoxelEngine.Render.Cores
             public Vector3 Forward { get; }
 
             public Matrix4x4 WorldToClip { get; }
+
+            public Vector2 ProjectionJitter { get; }
         }
     }
 }

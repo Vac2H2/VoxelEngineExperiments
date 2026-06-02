@@ -163,6 +163,19 @@ namespace VoxelEngine.LifeCycle.Manager
             _rayTracingScene.RemoveInstance(handle.Value);
         }
 
+        public void UpdateTransform(VoxelRtasHandle handle, Matrix4x4 localToWorld)
+        {
+            EnsureNotDisposed();
+            ValidateHandle(handle);
+
+            if (!_materialPropertiesByHandle.ContainsKey(handle.Value))
+            {
+                throw new ArgumentException("VoxelRtasHandle is not registered.", nameof(handle));
+            }
+
+            _rayTracingScene.UpdateTransform(handle.Value, localToWorld);
+        }
+
         public void Clear()
         {
             EnsureNotDisposed();

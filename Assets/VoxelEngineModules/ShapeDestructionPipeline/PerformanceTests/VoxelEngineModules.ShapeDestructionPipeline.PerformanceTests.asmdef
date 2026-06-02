@@ -1,0 +1,28 @@
+{
+    "name": "VoxelEngineModules.ShapeDestructionPipeline.PerformanceTests",
+    "rootNamespace": "VoxelEngineModules.ShapeDestructionPipeline.PerformanceTests",
+    "references": [
+        "VoxelEngineModules.Shape.Debugger",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.PerformanceTesting",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -3,7 +3,7 @@
 
 #define VOXEL_ENGINE_INCLUDE_HIT_SHADERS 0
 #include "VoxelProceduralShaderShared.hlsl"
-#include "NRD/Vendor/NRD.hlsli"
+#include "VoxelGbufferEncoding.hlsl"
 
 RaytracingAccelerationStructure _RaytracingAccelerationStructure;
 uint _AllInstanceMask;
@@ -15,11 +15,21 @@ float3 _CameraPositionWS;
 float3 _CameraForwardWS;
 float3 _PreviousCameraPositionWS;
 float3 _PreviousCameraForwardWS;
+float2 _VoxelEngineProjectionJitter;
+float2 _VoxelEnginePreviousProjectionJitter;
+float4 _VoxelEngineGbufferScreenSize;
 float4 _BackgroundColor;
 float4x4 _CurrentWorldToClip;
 float4x4 _PreviousWorldToClip;
 float _RayTMin;
 float _RayTMax;
+float _VoxelEngineGlobalRoughness;
+int _VoxelEnginePuddleEnabled;
+float _VoxelEnginePuddleCoverage;
+float _VoxelEnginePuddleScale;
+float _VoxelEnginePuddleRoughness;
+float _VoxelEnginePuddleDarkening;
+float _VoxelEnginePuddleMinNormalY;
 
 RWTexture2D<float4> _VoxelEngineGbufferAlbedo;
 RWTexture2D<float4> _VoxelEngineGbufferNormal;
@@ -46,10 +56,67 @@ float4 DecodeAlbedo(uint packedAlbedo)
     return float4(SrgbToLinear(srgb), alpha);
 }
 
-float ResolveLinearRoughness()
+float ResolveBaseLinearRoughness()
 {
-    // Temporary default until voxel materials expose per-surface roughness.
-    return 1.0;
+    return saturate(_VoxelEngineGlobalRoughness);
+}
+
+uint HashUint(uint value)
+{
+    value ^= value >> 16;
+    value *= 0x7feb352du;
+    value ^= value >> 15;
+    value *= 0x846ca68bu;
+    value ^= value >> 16;
+    return value;
+}
+
+float HashCell(int2 cell)
+{
+    uint hash = HashUint(((uint)cell.x * 0x9e3779b9u) ^ ((uint)cell.y * 0x85ebca6bu));
+    return (hash & 0x00ffffffu) / 16777215.0;
+}
+
+float ValueNoise2D(float2 position)
+{
+    int2 cell = (int2)floor(position);
+    float2 local = frac(position);
+    local = local * local * (3.0 - (2.0 * local));
+
+    float a = HashCell(cell);
+    float b = HashCell(cell + int2(1, 0));
+    float c = HashCell(cell + int2(0, 1));
+    float d = HashCell(cell + int2(1, 1));
+    return lerp(lerp(a, b, local.x), lerp(c, d, local.x), local.y);
+}
+
+float FractalPuddleNoise(float2 position)
+{
+    float noise =
+        (ValueNoise2D(position) * 0.62) +
+        (ValueNoise2D((position * 2.13) + 17.37) * 0.28) +
+        (ValueNoise2D((position * 4.07) - 9.11) * 0.10);
+    return saturate(noise);
+}
+
+float ComputePuddleMask(float3 positionWS, float3 normalWS)
+{
+    if (_VoxelEnginePuddleEnabled == 0)
+    {
+        return 0.0;
+    }
+
+    float minNormalY = saturate(_VoxelEnginePuddleMinNormalY);
+    float maxNormalY = min(minNormalY + 0.16, 1.0);
+    maxNormalY = max(maxNormalY, minNormalY + 1e-3);
+    float flatness = smoothstep(minNormalY, maxNormalY, saturate(normalWS.y));
+    float coverage = saturate(_VoxelEnginePuddleCoverage);
+    float scale = max(_VoxelEnginePuddleScale, 0.001);
+    float noise = FractalPuddleNoise(positionWS.xz * scale);
+    float threshold = 1.0 - coverage;
+    float edgeWidth = 0.09;
+    float puddle = smoothstep(threshold - edgeWidth, threshold + edgeWidth, noise);
+    return saturate(puddle * flatness);
 }
 
 float ComputeDepthValue(float hitT)
@@ -59,8 +126,7 @@ float ComputeDepthValue(float hitT)
 
 float ComputeLinearViewZ(float3 positionWS, float3 cameraPositionWS, float3 cameraForwardWS)
 {
-    // Match Unity worldToCameraMatrix convention: geometry in front of the camera is negative Z.
-    return -dot(positionWS - cameraPositionWS, cameraForwardWS);
+    return dot(positionWS - cameraPositionWS, cameraForwardWS);
 }
 
 float2 ComputeUvFromClip(float4 clipPosition)
@@ -113,7 +179,8 @@ void RayGenMain()
 
     RayDesc ray;
     ray.Origin = _CameraPositionWS;
-    ray.Direction = -normalize(mul(float4((float2)pixel + 0.5, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
+    float2 jitteredPixel = (float2)pixel + 0.5 + _VoxelEngineProjectionJitter;
+    ray.Direction = -normalize(mul(float4(jitteredPixel, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
     float viewDirectionDotForward = max(dot(ray.Direction, _CameraForwardWS), 1e-6);
     float nearPlaneT = _RayTMin / viewDirectionDotForward;
     float farPlaneT = _RayTMax / viewDirectionDotForward;
@@ -145,12 +212,8 @@ void RayGenMain()
         surfacePayload = debugOverlayPayload;
     }
 
-    float4 albedo = HasHit(surfacePayload)
-        ? DecodeAlbedo(surfacePayload.packedAlbedo)
-        : _BackgroundColor;
-    float4 normal = HasHit(surfacePayload)
-        ? NRD_FrontEnd_PackNormalAndRoughness(surfacePayload.worldNormal, ResolveLinearRoughness(), 0.0)
-        : 0.0;
+    float4 albedo = _BackgroundColor;
+    float4 normal = 0.0;
     float depth = HasHit(surfacePayload)
         ? ComputeDepthValue(surfacePayload.hitT)
         : 0.0;
@@ -160,12 +223,24 @@ void RayGenMain()
     if (HasHit(surfacePayload))
     {
         float3 positionWS = ray.Origin + (ray.Direction * surfacePayload.hitT);
+        float puddleMask = ComputePuddleMask(positionWS, surfacePayload.worldNormal);
+        float baseRoughness = ResolveBaseLinearRoughness();
+        float puddleRoughness = min(baseRoughness, saturate(_VoxelEnginePuddleRoughness));
+        float roughness = lerp(
+            baseRoughness,
+            puddleRoughness,
+            puddleMask);
+        float wetDarkening = lerp(1.0, 1.0 - saturate(_VoxelEnginePuddleDarkening), puddleMask);
+        albedo = DecodeAlbedo(surfacePayload.packedAlbedo);
+        albedo.rgb *= wetDarkening;
+        normal = VoxelPackNormalAndRoughness(surfacePayload.worldNormal, roughness);
+
         float currentViewDepth = ComputeLinearViewZ(positionWS, _CameraPositionWS, _CameraForwardWS);
         viewZ = currentViewDepth;
-        float4 currentClip = mul(_CurrentWorldToClip, float4(positionWS, 1.0));
         float4 previousClip = mul(_PreviousWorldToClip, float4(positionWS, 1.0));
-        float2 currentUv = ComputeUvFromClip(currentClip);
-        float2 previousUv = ComputeUvFromClip(previousClip);
+        float2 currentUv = ((float2)pixel + 0.5) * _VoxelEngineGbufferScreenSize.zw;
+        float2 previousUv = ComputeUvFromClip(previousClip) -
+            (_VoxelEnginePreviousProjectionJitter * _VoxelEngineGbufferScreenSize.zw);
         float previousViewDepth = ComputeLinearViewZ(positionWS, _PreviousCameraPositionWS, _PreviousCameraForwardWS);
         motion.xyz = float3(previousUv - currentUv, previousViewDepth - currentViewDepth);
     }

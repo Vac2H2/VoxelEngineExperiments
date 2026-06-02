@@ -1,6 +1,7 @@
 using System;
 using UnityEditor;
 using UnityEngine;
+using VoxelEngine;
 using VoxelEngine.Data.Voxel;
 
 namespace VoxelEngine.Editor.Tools
@@ -10,7 +11,6 @@ namespace VoxelEngine.Editor.Tools
         [SerializeField] private Mesh _sourceMesh;
         [SerializeField] private VoxelModelAsset _targetAsset;
         [SerializeField] private string _targetAssetPath;
-        [SerializeField] private float _voxelSize = 0.1f;
         [SerializeField] private int _solidVoxelValue = 1;
         [SerializeField] private int _maxAabbsPerChunk = 1;
 
@@ -37,19 +37,20 @@ namespace VoxelEngine.Editor.Tools
                     : null;
             }
 
-            _voxelSize = EditorGUILayout.FloatField("Voxel Size", _voxelSize);
+            float voxelSize = VoxelEngineSettings.GlobalVoxelSize;
+            EditorGUILayout.LabelField("Global Voxel Size", voxelSize.ToString("0.######"));
             _solidVoxelValue = EditorGUILayout.IntSlider("Solid Voxel Value", _solidVoxelValue, 1, 255);
             _maxAabbsPerChunk = EditorGUILayout.IntSlider("Max AABBs / Chunk", _maxAabbsPerChunk, 1, VoxelVolume.MaxAabbsPerChunk);
 
             EditorGUILayout.Space();
 
-            if (_sourceMesh != null && _voxelSize > 0f)
+            if (_sourceMesh != null && voxelSize > 0f)
             {
-                DrawMeshSummary(_sourceMesh, _voxelSize);
+                DrawMeshSummary(_sourceMesh, voxelSize);
             }
             else
             {
-                EditorGUILayout.HelpBox("Assign a source mesh and a positive voxel size.", MessageType.Info);
+                EditorGUILayout.HelpBox("Assign a source mesh and set a positive global voxel size.", MessageType.Info);
             }
 
             EditorGUILayout.Space();
@@ -60,7 +61,7 @@ namespace VoxelEngine.Editor.Tools
                 "Chunk coordinates are rebased so the source mesh bounds minimum becomes local origin. Each occupied chunk builds up to the requested AABB budget.",
                 MessageType.None);
 
-            using (new EditorGUI.DisabledScope(_sourceMesh == null || _voxelSize <= 0f))
+            using (new EditorGUI.DisabledScope(_sourceMesh == null || voxelSize <= 0f))
             {
                 if (GUILayout.Button(_targetAsset == null ? "Create Asset" : "Overwrite Asset", GUILayout.Height(32.0f)))
                 {
@@ -101,7 +102,6 @@ namespace VoxelEngine.Editor.Tools
             try
             {
                 var options = new MeshToVoxelModelAssetBuildOptions(
-                    _voxelSize,
                     checked((byte)_solidVoxelValue),
                     _maxAabbsPerChunk);
                 MeshToVoxelModelAssetBuildResult buildResult = MeshToVoxelModelAssetBuilder.Build(_sourceMesh, options);

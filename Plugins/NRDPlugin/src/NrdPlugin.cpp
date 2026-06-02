@@ -365,6 +365,14 @@ namespace
         reblurSettings.hitDistanceParameters.A = settings.hitDistanceA;
         reblurSettings.hitDistanceParameters.B = settings.hitDistanceB;
         reblurSettings.hitDistanceParameters.C = settings.hitDistanceC;
+        reblurSettings.diffusePrepassBlurRadius = std::max(settings.diffusePrepassBlurRadius, 0.0f);
+        reblurSettings.specularPrepassBlurRadius = 0.0f;
+        reblurSettings.minBlurRadius = std::max(settings.minBlurRadius, 0.0f);
+        reblurSettings.maxBlurRadius = std::max(settings.maxBlurRadius, 0.0f);
+        reblurSettings.planeDistanceSensitivity = std::max(settings.planeDistanceSensitivity, 0.001f);
+        reblurSettings.fastHistoryClampingSigmaScale = std::clamp(settings.fastHistoryClampingSigmaScale, 1.0f, 3.0f);
+        reblurSettings.minHitDistanceWeight = std::clamp(settings.minHitDistanceWeight, 0.0f, 0.2f);
+        reblurSettings.maxStabilizedFrameNum = static_cast<uint32_t>(std::max(settings.maxStabilizedFrameNum, 0));
         reblurSettings.maxAccumulatedFrameNum = static_cast<uint32_t>(std::max(settings.maxAccumulatedFrameNum, 1));
         reblurSettings.maxFastAccumulatedFrameNum = static_cast<uint32_t>(std::max(settings.maxFastAccumulatedFrameNum, 1));
         reblurSettings.historyFixFrameNum = static_cast<uint32_t>(std::max(settings.historyFixFrameNum, 1));

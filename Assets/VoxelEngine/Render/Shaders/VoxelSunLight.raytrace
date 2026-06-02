@@ -1,0 +1,132 @@
+#pragma max_recursion_depth 1
+#pragma only_renderers d3d11
+
+#define VOXEL_ENGINE_INCLUDE_HIT_SHADERS 0
+#include "VoxelProceduralShaderShared.hlsl"
+#include "VoxelGbufferEncoding.hlsl"
+
+RaytracingAccelerationStructure _RaytracingAccelerationStructure;
+
+Texture2D<float4> _VoxelEngineGbufferNormal;
+Texture2D<float> _VoxelEngineGbufferDepth;
+
+float4x4 _PixelCoordToViewDirWS;
+float2 _VoxelEngineProjectionJitter;
+float3 _CameraPositionWS;
+uint _OpaqueInstanceMask;
+float3 _SunDirectionWS;
+float3 _SunColor;
+float _SunShadowDistance;
+float _SunNormalBias;
+
+RWTexture2D<float4> _VoxelEngineSunLight;
+
+static const float kSunSecondaryRayTMin = 1e-4;
+
+float3 ComputePrimaryViewDirectionWS(uint2 pixel)
+{
+    return -normalize(mul(float4((float2)pixel + 0.5 + _VoxelEngineProjectionJitter, 1.0, 1.0), _PixelCoordToViewDirWS).xyz);
+}
+
+uint ResolveOpaqueInstanceMask()
+{
+    return _OpaqueInstanceMask == 0u ? 0x1u : _OpaqueInstanceMask;
+}
+
+float ResolveSunShadowDistance()
+{
+    return max(_SunShadowDistance, kSunSecondaryRayTMin);
+}
+
+float ResolveSunNormalBias()
+{
+    return _SunNormalBias <= 0.0 ? 0.001 : _SunNormalBias;
+}
+
+float3 ResolveSunDirectionWS()
+{
+    float directionLengthSq = dot(_SunDirectionWS, _SunDirectionWS);
+    return directionLengthSq > 1e-8 ? _SunDirectionWS * rsqrt(directionLengthSq) : float3(0.0, 1.0, 0.0);
+}
+
+bool TryLoadSurface(uint2 pixel, out float3 positionWS, out float3 normalWS)
+{
+    positionWS = 0.0;
+    normalWS = 0.0;
+
+    float4 packedNormalRoughness = _VoxelEngineGbufferNormal.Load(int3(pixel, 0));
+    if (dot(packedNormalRoughness.xyz, packedNormalRoughness.xyz) <= 1e-6)
+    {
+        return false;
+    }
+
+    float depthValue = max(_VoxelEngineGbufferDepth.Load(int3(pixel, 0)), 0.0);
+    float3 viewDirectionWS = ComputePrimaryViewDirectionWS(pixel);
+    positionWS = _CameraPositionWS + (viewDirectionWS * depthValue);
+    float4 normalRoughness = VoxelUnpackNormalAndRoughness(packedNormalRoughness);
+    normalWS = normalRoughness.xyz;
+    return true;
+}
+
+RayPayload TraceSceneRay(RayDesc ray, uint instanceMask)
+{
+    RayPayload payload;
+    payload.hitT = 0.0;
+    payload.worldNormal = 0.0;
+    payload.packedAlbedo = 0u;
+    payload.flags = 0u;
+
+    TraceRay(
+        _RaytracingAccelerationStructure,
+        RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES,
+        instanceMask,
+        0,
+        1,
+        0,
+        ray,
+        payload);
+
+    return payload;
+}
+
+[shader("raygeneration")]
+void RayGenMain()
+{
+    uint2 pixel = DispatchRaysIndex().xy;
+
+    float3 positionWS;
+    float3 normalWS;
+    if (!TryLoadSurface(pixel, positionWS, normalWS))
+    {
+        _VoxelEngineSunLight[pixel] = 0.0;
+        return;
+    }
+
+    float3 sunDirectionWS = ResolveSunDirectionWS();
+    float ndotl = saturate(dot(normalWS, sunDirectionWS));
+    float3 sunLight = 0.0;
+
+    if (ndotl > 0.0)
+    {
+        RayDesc ray;
+        ray.Origin = positionWS + (normalWS * ResolveSunNormalBias());
+        ray.Direction = sunDirectionWS;
+        ray.TMin = kSunSecondaryRayTMin;
+        ray.TMax = ResolveSunShadowDistance();
+
+        RayPayload payload = TraceSceneRay(ray, ResolveOpaqueInstanceMask());
+        float shadowVisibility = HasHit(payload) ? 0.0 : 1.0;
+        sunLight = max(_SunColor, float3(0.0, 0.0, 0.0)) * (ndotl * shadowVisibility);
+    }
+
+    _VoxelEngineSunLight[pixel] = float4(sunLight, 1.0);
+}
+
+[shader("miss")]
+void MissMain(inout RayPayload payload : SV_RayPayload)
+{
+    payload.hitT = 0.0;
+    payload.worldNormal = 0.0;
+    payload.packedAlbedo = 0u;
+    payload.flags = 0u;
+}

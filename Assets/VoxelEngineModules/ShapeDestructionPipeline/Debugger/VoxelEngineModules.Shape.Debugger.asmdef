@@ -1,0 +1,20 @@
+{
+    "name": "VoxelEngineModules.Shape.Debugger",
+    "rootNamespace": "VoxelEngineModules.Shape.Debugger",
+    "references": [
+        "VoxelEngineModules.Shape",
+        "VoxelEngineModules.ShapeDestructionPipeline",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

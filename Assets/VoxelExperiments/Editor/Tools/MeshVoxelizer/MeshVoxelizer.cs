@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 using VoxelExperiments.Runtime.Data;
 using VoxelExperiments.Runtime.Rendering.ModelProceduralAabb;
 
@@ -7,13 +8,8 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
 {
     public readonly struct MeshVoxelizationSettings
     {
-        public MeshVoxelizationSettings(float voxelSize, byte solidVoxelValue, VoxelMemoryLayout memoryLayout)
+        public MeshVoxelizationSettings(byte solidVoxelValue, VoxelMemoryLayout memoryLayout)
         {
-            if (voxelSize <= 0f)
-            {
-                throw new ArgumentOutOfRangeException(nameof(voxelSize), "Voxel size must be greater than zero.");
-            }
-
             if (solidVoxelValue == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(solidVoxelValue), "Solid voxel value must be non-zero.");
@@ -24,7 +20,7 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
                 throw new ArgumentOutOfRangeException(nameof(memoryLayout), memoryLayout, "Unsupported voxel memory layout.");
             }
 
-            VoxelSize = voxelSize;
+            VoxelSize = VoxelGlobalSize.Value;
             SolidVoxelValue = solidVoxelValue;
             MemoryLayout = memoryLayout;
         }
@@ -34,6 +30,71 @@ namespace VoxelExperiments.Editor.Tools.MeshVoxelizer
         public byte SolidVoxelValue { get; }
 
         public VoxelMemoryLayout MemoryLayout { get; }
+    }
+
+    internal static class VoxelGlobalSize
+    {
+        private const float DefaultVoxelSize = 1.0f;
+
+        public static float Value
+        {
+            get
+            {
+                try
+                {
+                    RenderPipeline currentPipeline = RenderPipelineManager.currentPipeline;
+                    if (currentPipeline != null)
+                    {
+                        object pipelineAsset = currentPipeline.GetType().GetProperty("Asset")?.GetValue(currentPipeline);
+                        if (TryReadGlobalVoxelSize(pipelineAsset, out float pipelineVoxelSize))
+                        {
+                            return pipelineVoxelSize;
+                        }
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+
+                if (TryReadGlobalVoxelSize(GraphicsSettings.currentRenderPipeline, out float graphicsVoxelSize))
+                {
+                    return graphicsVoxelSize;
+                }
+
+                if (TryReadGraphicsSettingsRenderPipelineAsset("defaultRenderPipeline", out float defaultVoxelSize) ||
+                    TryReadGraphicsSettingsRenderPipelineAsset("renderPipelineAsset", out defaultVoxelSize))
+                {
+                    return defaultVoxelSize;
+                }
+
+                return DefaultVoxelSize;
+            }
+        }
+
+        private static bool TryReadGraphicsSettingsRenderPipelineAsset(string propertyName, out float voxelSize)
+        {
+            voxelSize = DefaultVoxelSize;
+            object value = typeof(GraphicsSettings).GetProperty(propertyName)?.GetValue(null);
+            return TryReadGlobalVoxelSize(value, out voxelSize);
+        }
+
+        private static bool TryReadGlobalVoxelSize(object source, out float voxelSize)
+        {
+            voxelSize = DefaultVoxelSize;
+            if (source == null)
+            {
+                return false;
+            }
+
+            object value = source.GetType().GetProperty("GlobalVoxelSize")?.GetValue(source);
+            if (value is float floatValue && floatValue > 0.0f && float.IsFinite(floatValue))
+            {
+                voxelSize = floatValue;
+                return true;
+            }
+
+            return false;
+        }
     }
 
     public sealed class MeshVoxelizationResult

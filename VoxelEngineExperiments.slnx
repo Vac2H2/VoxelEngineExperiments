@@ -1,6 +1,15 @@
 ﻿<Solution>
+  <Project Path="VoxelEngineModules.ShapeDestructionPipeline.csproj" />
   <Project Path="VoxelExperiments.Runtime.csproj" />
+  <Project Path="AlgorithmTesting.PerformanceTests.csproj" />
   <Project Path="VoxelExperiments.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="VoxelEngineModules.ShapeDestructionPipeline.PerformanceTests.csproj" />
+  <Project Path="VoxelEngineModules.Shape.Debugger.Editor.csproj" />
+  <Project Path="AlgorithmTesting.csproj" />
+  <Project Path="VoxelEngineModules.Shape.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="VoxelEngineModules.Shape.Debugger.csproj" />
+  <Project Path="VoxelEngineModules.DestructionShape.csproj" />
+  <Project Path="VoxelEngineModules.ShapeManagement.csproj" />
 </Solution>

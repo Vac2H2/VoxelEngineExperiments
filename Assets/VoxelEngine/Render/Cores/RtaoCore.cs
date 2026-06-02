@@ -16,9 +16,18 @@ namespace VoxelEngine.Render.Cores
     {
         public static readonly int HitDistanceTextureId = Shader.PropertyToID("_VoxelEngineHitDist");
         public static readonly int HitDistanceMaxId = Shader.PropertyToID("_VoxelEngineRtaoHitDistanceMax");
-        public static readonly int OutputTextureId = Shader.PropertyToID("_VoxelEngineRtao");
+        public static readonly int RawLightTextureId = Shader.PropertyToID("_VoxelEngineRawLight");
+        public static readonly int SpatialLightTextureId = Shader.PropertyToID("_VoxelEngineSpatialLight");
+        public static readonly int DenoisedLightTextureId = Shader.PropertyToID("_VoxelEngineDenoisedLight");
+        public static readonly int OutputTextureId = DenoisedLightTextureId;
+
+        public static readonly int LegacyCurrentAoTextureId = Shader.PropertyToID("_VoxelEngineRtaoCurrentAo");
+        public static readonly int LegacyOutputTextureId = Shader.PropertyToID("_VoxelEngineRtao");
 
         public static RenderTargetIdentifier HitDistanceTarget => new RenderTargetIdentifier(HitDistanceTextureId);
+        public static RenderTargetIdentifier RawLightTarget => new RenderTargetIdentifier(RawLightTextureId);
+        public static RenderTargetIdentifier SpatialLightTarget => new RenderTargetIdentifier(SpatialLightTextureId);
+        public static RenderTargetIdentifier DenoisedLightTarget => new RenderTargetIdentifier(DenoisedLightTextureId);
         public static RenderTargetIdentifier OutputTarget => new RenderTargetIdentifier(OutputTextureId);
     }
 
@@ -26,6 +35,12 @@ namespace VoxelEngine.Render.Cores
     {
         Full = 1,
         Half = 2,
+    }
+
+    public enum RtaoNoiseMode
+    {
+        AnimatedStbn = 0,
+        FixedScreenStbn = 1,
     }
 
     [Serializable]
@@ -60,6 +75,7 @@ namespace VoxelEngine.Render.Cores
 
         private static readonly int RayTracingAccelerationStructureId = Shader.PropertyToID("_RaytracingAccelerationStructure");
         private static readonly int PixelCoordToViewDirWsId = Shader.PropertyToID("_PixelCoordToViewDirWS");
+        private static readonly int ProjectionJitterId = Shader.PropertyToID("_VoxelEngineProjectionJitter");
         private static readonly int CameraPositionWsId = Shader.PropertyToID("_CameraPositionWS");
         private static readonly int RayTMaxId = Shader.PropertyToID("_RayTMax");
         private static readonly int OpaqueInstanceMaskId = Shader.PropertyToID("_OpaqueInstanceMask");
@@ -68,12 +84,14 @@ namespace VoxelEngine.Render.Cores
         private static readonly int RtaoNormalBiasParamId = Shader.PropertyToID("_RtaoAmbientNormalBias");
         private static readonly int RtaoRaysPerPixelParamId = Shader.PropertyToID("_RtaoAmbientRaysPerPixel");
         private static readonly int RtaoStbnSliceId = Shader.PropertyToID("_VoxelEngineRtaoStbnSlice");
+        private static readonly int RtaoStbnTileTransformId = Shader.PropertyToID("_VoxelEngineRtaoStbnTileTransform");
 
         [NonSerialized] private RenderTexture _hitDistanceTexture;
 
         [SerializeField] private RayTracingShader _rayTracingShader;
         [SerializeField] private string _shaderPassName = DefaultShaderPassName;
         [SerializeField] private RtaoResolutionMode _resolutionMode = RtaoResolutionMode.Full;
+        [SerializeField] private RtaoNoiseMode _noiseMode = RtaoNoiseMode.AnimatedStbn;
         [SerializeField] private GraphicsFormat _outputFormat = GraphicsFormat.None;
         [SerializeField] private HitDistanceSettings _ambient = new HitDistanceSettings();
         [SerializeField] private Texture2D[] _stbnSlices = Array.Empty<Texture2D>();
@@ -98,6 +116,12 @@ namespace VoxelEngine.Render.Cores
             set => _resolutionMode = value == RtaoResolutionMode.Half ? RtaoResolutionMode.Half : RtaoResolutionMode.Full;
         }
 
+        public RtaoNoiseMode NoiseMode
+        {
+            get => ResolveNoiseMode();
+            set => _noiseMode = value == RtaoNoiseMode.FixedScreenStbn ? RtaoNoiseMode.FixedScreenStbn : RtaoNoiseMode.AnimatedStbn;
+        }
+
         public RenderTexture HitDistanceTexture => _hitDistanceTexture;
 
         public RenderTexture OutputTexture => _hitDistanceTexture;
@@ -106,7 +130,8 @@ namespace VoxelEngine.Render.Cores
             CommandBuffer commandBuffer,
             Camera camera,
             VoxelEngineRenderBackend renderBackend,
-            GbufferCore gbufferCore)
+            GbufferCore gbufferCore,
+            Vector2 projectionJitter = default)
         {
             if (commandBuffer == null)
             {
@@ -170,8 +195,12 @@ namespace VoxelEngine.Render.Cores
                 _rayTracingShader,
                 PixelCoordToViewDirWsId,
                 ComputePixelCoordToWorldSpaceViewDirectionMatrix(camera, camera.pixelWidth, camera.pixelHeight));
+            commandBuffer.SetRayTracingVectorParam(
+                _rayTracingShader,
+                ProjectionJitterId,
+                new Vector4(projectionJitter.x, projectionJitter.y, 0.0f, 0.0f));
 
-            Vector3 cameraPosition = camera.transform.position;
+            Vector3 cameraPosition = VoxelCameraState.FromCamera(camera).Position;
             commandBuffer.SetRayTracingVectorParam(
                 _rayTracingShader,
                 CameraPositionWsId,
@@ -186,6 +215,10 @@ namespace VoxelEngine.Render.Cores
                 unchecked((int)VoxelRtasManager.OpaqueInstanceMask));
             commandBuffer.SetRayTracingIntParam(_rayTracingShader, RtaoPixelStepId, pixelStep);
             commandBuffer.SetRayTracingIntParam(_rayTracingShader, RtaoRaysPerPixelParamId, ResolveRaysPerPixel());
+            commandBuffer.SetRayTracingIntParam(
+                _rayTracingShader,
+                RtaoStbnTileTransformId,
+                ResolveNoiseMode() == RtaoNoiseMode.FixedScreenStbn ? 1 : 0);
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, RtaoMaxDistanceParamId, ResolveMaxDistance());
             commandBuffer.SetRayTracingFloatParam(_rayTracingShader, RtaoNormalBiasParamId, ResolveNormalBias());
             commandBuffer.SetRayTracingTextureParam(_rayTracingShader, VoxelGbufferIds.NormalTextureId, gbufferCore.NormalTexture);
@@ -202,6 +235,7 @@ namespace VoxelEngine.Render.Cores
 
             commandBuffer.SetGlobalTexture(VoxelRtaoIds.HitDistanceTextureId, _hitDistanceTexture);
             commandBuffer.SetGlobalTexture(VoxelRtaoIds.OutputTextureId, _hitDistanceTexture);
+            commandBuffer.SetGlobalTexture(VoxelRtaoIds.LegacyOutputTextureId, _hitDistanceTexture);
             commandBuffer.SetGlobalFloat(VoxelRtaoIds.HitDistanceMaxId, ResolveMaxDistance());
             return true;
         }
@@ -352,7 +386,9 @@ namespace VoxelEngine.Render.Cores
                 return false;
             }
 
-            int sliceIndex = Mathf.Abs(Time.frameCount) % sliceCount;
+            int sliceIndex = ResolveNoiseMode() == RtaoNoiseMode.FixedScreenStbn
+                ? 0
+                : Mathf.Abs(Time.frameCount) % sliceCount;
             int validIndex = 0;
             for (int index = 0; index < _stbnSlices.Length; index++)
             {
@@ -407,6 +443,13 @@ namespace VoxelEngine.Render.Cores
             return _resolutionMode == RtaoResolutionMode.Half
                 ? RtaoResolutionMode.Half
                 : RtaoResolutionMode.Full;
+        }
+
+        private RtaoNoiseMode ResolveNoiseMode()
+        {
+            return _noiseMode == RtaoNoiseMode.FixedScreenStbn
+                ? RtaoNoiseMode.FixedScreenStbn
+                : RtaoNoiseMode.AnimatedStbn;
         }
 
         private float ResolveMaxDistance()

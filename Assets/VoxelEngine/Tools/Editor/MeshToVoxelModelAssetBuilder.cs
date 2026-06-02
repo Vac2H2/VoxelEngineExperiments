@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
+using VoxelEngine;
 using VoxelEngine.Data.Voxel;
 using VoxelEngine.Editor.Importer;
 using VoxelExperiments.Editor.Tools.MeshVoxelizer;
@@ -14,24 +15,16 @@ namespace VoxelEngine.Editor.Tools
 {
     internal readonly struct MeshToVoxelModelAssetBuildOptions
     {
-        public MeshToVoxelModelAssetBuildOptions(float voxelSize, byte solidVoxelValue, int maxAabbsPerChunk)
+        public MeshToVoxelModelAssetBuildOptions(byte solidVoxelValue, int maxAabbsPerChunk)
         {
-            if (voxelSize <= 0f)
-            {
-                throw new ArgumentOutOfRangeException(nameof(voxelSize), "Voxel size must be greater than zero.");
-            }
-
             if (solidVoxelValue == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(solidVoxelValue), "Solid voxel value must be non-zero.");
             }
 
-            VoxelSize = voxelSize;
             SolidVoxelValue = solidVoxelValue;
             MaxAabbsPerChunk = Mathf.Clamp(maxAabbsPerChunk, 1, VoxelVolume.MaxAabbsPerChunk);
         }
-
-        public float VoxelSize { get; }
 
         public byte SolidVoxelValue { get; }
 
@@ -67,7 +60,6 @@ namespace VoxelEngine.Editor.Tools
             }
 
             MeshVoxelizationSettings settings = new MeshVoxelizationSettings(
-                options.VoxelSize,
                 options.SolidVoxelValue,
                 VoxelMemoryLayout.Linear);
             MeshVoxelizationResult voxelizationResult = MeshVoxelizerGpu.Voxelize(sourceMesh, settings);

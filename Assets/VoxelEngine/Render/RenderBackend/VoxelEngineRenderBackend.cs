@@ -332,6 +332,22 @@ namespace VoxelEngine.Render.RenderBackend
             _freeHandleValues.Push(handle.Value);
         }
 
+        public void UpdateInstanceTransform(VoxelEngineRenderInstanceHandle handle, Matrix4x4 localToWorld)
+        {
+            EnsureNotDisposed();
+            Entry entry = GetEntry(handle);
+
+            if (entry.OpaqueRtasHandle.IsValid)
+            {
+                _rtasManager.UpdateTransform(entry.OpaqueRtasHandle, localToWorld);
+            }
+
+            if (entry.TransparentRtasHandle.IsValid)
+            {
+                _rtasManager.UpdateTransform(entry.TransparentRtasHandle, localToWorld);
+            }
+        }
+
         public void Clear()
         {
             EnsureNotDisposed();
